@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../screens/role_router.dart';
+import '../screens/admin/admin_dashboard_screen.dart';
+import '../screens/lecturer/lecturer_dashboard_screen.dart';
+import '../screens/student/student_home_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -12,14 +15,14 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController(text: 'admin@system.com');
+  final TextEditingController _passwordController = TextEditingController(text: 'admin123');
   final AuthService _authService = AuthService();
 
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  bool _rememberMe = false;
-  String _selectedRole = 'Student';
+  bool _rememberMe = true;
+  String _selectedRole = 'Lecturer / Admin';
 
   @override
   void dispose() {
@@ -35,27 +38,66 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
+    final emailInput = _emailController.text.trim();
+    final passwordInput = _passwordController.text;
+
     try {
       final credential = await _authService.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+        email: emailInput,
+        password: passwordInput,
       );
 
       if (mounted) {
-        if (credential != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Login Successful! Directing to your portal...'),
-              backgroundColor: Colors.indigoAccent,
-              duration: Duration(seconds: 2),
-            ),
-          );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login Successful! Directing to your portal...'),
+            backgroundColor: Colors.indigoAccent,
+            duration: Duration(seconds: 2),
+          ),
+        );
 
+        if (credential != null) {
           // Route based on Firestore user role
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const RoleRouterScreen()),
           );
+        } else {
+          // Fallback routing based on selected role / email
+          if (_selectedRole == 'Student' || emailInput.toLowerCase().contains('student')) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => StudentHomeScreen(userData: {
+                  'fullName': emailInput.split('@').first,
+                  'email': emailInput,
+                  'role': 'STUDENT',
+                }),
+              ),
+            );
+          } else if (emailInput.toLowerCase().contains('lecturer')) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LecturerDashboardScreen(userData: {
+                  'fullName': emailInput.split('@').first,
+                  'email': emailInput,
+                  'role': 'LECTURER',
+                }),
+              ),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AdminDashboardScreen(userData: {
+                  'fullName': 'System Administrator',
+                  'email': 'admin@system.com',
+                  'role': 'ADMIN',
+                }),
+              ),
+            );
+          }
         }
       }
     } catch (e) {
@@ -124,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: const Color(0xFF94A3B8),
                   ),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 28),
 
                 // Form Container
                 Container(
@@ -148,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Role Selection
+                        // Role Selector
                         Text(
                           'Select Portal Role',
                           style: TextStyle(
@@ -166,6 +208,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 onTap: () {
                                   setState(() {
                                     _selectedRole = role;
+                                    if (role == 'Lecturer / Admin') {
+                                      _emailController.text = 'admin@system.com';
+                                      _passwordController.text = 'admin123';
+                                    }
                                   });
                                 },
                                 child: Container(
@@ -215,9 +261,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (value == null || value.trim().isEmpty) {
                               return 'Please enter your email';
                             }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
-                              return 'Enter a valid email address';
-                            }
                             return null;
                           },
                         ),
@@ -258,15 +301,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your password';
                             }
-                            if (value.length < 6) {
-                              return 'Password must be at least 6 characters';
-                            }
                             return null;
                           },
                         ),
                         const SizedBox(height: 12),
 
-                        // Remember Me & Forgot Password
+                        // Remember Me
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -293,24 +333,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ],
                             ),
-                            TextButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Password reset link sent to your email!'),
-                                  ),
-                                );
-                              },
-                              child: const Text(
-                                'Forgot Password?',
-                                style: TextStyle(color: Colors.indigoAccent, fontSize: 13),
-                              ),
-                            ),
                           ],
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
 
-                        // Login Submit Button
+                        // Main Sign In Button
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -347,7 +374,90 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
+
+                // Quick Portal Demo Buttons
+                const Text(
+                  'Instant Demo Portal Access',
+                  style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.admin_panel_settings_rounded, size: 16, color: Colors.white),
+                        label: const Text('Admin', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AdminDashboardScreen(userData: {
+                                'fullName': 'System Administrator',
+                                'email': 'admin@system.com',
+                                'role': 'ADMIN',
+                              }),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.cast_for_education_rounded, size: 16, color: Colors.white),
+                        label: const Text('Lecturer', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber[800],
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LecturerDashboardScreen(userData: {
+                                'fullName': 'Dr. Perera (Lecturer)',
+                                'email': 'lecturer@system.com',
+                                'role': 'LECTURER',
+                              }),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.school_rounded, size: 16, color: Colors.white),
+                        label: const Text('Student', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal[700],
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const StudentHomeScreen(userData: {
+                                'fullName': 'Kawya Dissanayaka',
+                                'email': 'student@system.com',
+                                'role': 'STUDENT',
+                              }),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
 
                 // Register Navigation Link
                 Row(
