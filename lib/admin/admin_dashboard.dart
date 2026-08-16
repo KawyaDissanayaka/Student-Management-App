@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../screens/admin/students_list_screen.dart';
 import '../screens/admin/lecturers_list_screen.dart';
+import '../screens/admin/enrollments_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
 
@@ -65,6 +66,17 @@ class AdminDashboard extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const StudentsListScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.assignment_ind_rounded, color: Colors.teal),
+              title: const Text('Enrollments', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const EnrollmentsListScreen()),
                 );
               },
             ),
@@ -140,102 +152,127 @@ class AdminDashboard extends StatelessWidget {
               return StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('users').snapshots(),
                 builder: (context, usersSnap) {
-                  final studentDocs = studentsSnap.hasData ? studentsSnap.data!.docs : [];
-                  final lecturerDocs = lecturersSnap.hasData ? lecturersSnap.data!.docs : [];
-                  final userDocs = usersSnap.hasData ? usersSnap.data!.docs : [];
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance.collection('subjects').snapshots(),
+                    builder: (context, subjectsSnap) {
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance.collection('enrollments').snapshots(),
+                        builder: (context, enrollmentsSnap) {
+                          final studentDocs = studentsSnap.hasData ? studentsSnap.data!.docs : [];
+                          final lecturerDocs = lecturersSnap.hasData ? lecturersSnap.data!.docs : [];
+                          final userDocs = usersSnap.hasData ? usersSnap.data!.docs : [];
+                          final subjectDocs = subjectsSnap.hasData ? subjectsSnap.data!.docs : [];
+                          final enrollmentDocs = enrollmentsSnap.hasData ? enrollmentsSnap.data!.docs : [];
 
-                  // 1. Calculate Active Students Count
-                  final Set<String> activeStudentIdentifiers = {};
+                          // 1. Calculate Active Students Count
+                          final Set<String> activeStudentIdentifiers = {};
 
-                  for (var doc in studentDocs) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final status = (data['status'] ?? 'active').toString().toLowerCase();
-                    if (status == 'active') {
-                      final email = data['email']?.toString().toLowerCase();
-                      activeStudentIdentifiers.add(email ?? doc.id);
-                    }
-                  }
+                          for (var doc in studentDocs) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final status = (data['status'] ?? 'active').toString().toLowerCase();
+                            if (status == 'active') {
+                              final email = data['email']?.toString().toLowerCase();
+                              activeStudentIdentifiers.add(email ?? doc.id);
+                            }
+                          }
 
-                  for (var doc in userDocs) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final role = data['role']?.toString().toUpperCase() ?? '';
-                    final status = (data['status'] ?? 'active').toString().toLowerCase();
-                    if (role == 'STUDENT' && status == 'active') {
-                      final email = data['email']?.toString().toLowerCase();
-                      activeStudentIdentifiers.add(email ?? doc.id);
-                    }
-                  }
+                          for (var doc in userDocs) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final role = data['role']?.toString().toUpperCase() ?? '';
+                            final status = (data['status'] ?? 'active').toString().toLowerCase();
+                            if (role == 'STUDENT' && status == 'active') {
+                              final email = data['email']?.toString().toLowerCase();
+                              activeStudentIdentifiers.add(email ?? doc.id);
+                            }
+                          }
 
-                  // 2. Calculate Active Lecturers Count (status == 'active' ONLY)
-                  final Set<String> activeLecturerIdentifiers = {};
+                          // 2. Calculate Active Lecturers Count
+                          final Set<String> activeLecturerIdentifiers = {};
 
-                  for (var doc in lecturerDocs) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final status = (data['status'] ?? 'active').toString().toLowerCase();
-                    if (status == 'active') {
-                      final email = data['email']?.toString().toLowerCase();
-                      activeLecturerIdentifiers.add(email ?? doc.id);
-                    }
-                  }
+                          for (var doc in lecturerDocs) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final status = (data['status'] ?? 'active').toString().toLowerCase();
+                            if (status == 'active') {
+                              final email = data['email']?.toString().toLowerCase();
+                              activeLecturerIdentifiers.add(email ?? doc.id);
+                            }
+                          }
 
-                  for (var doc in userDocs) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final role = data['role']?.toString().toUpperCase() ?? '';
-                    final status = (data['status'] ?? 'active').toString().toLowerCase();
-                    if (role == 'LECTURER' && status == 'active') {
-                      final email = data['email']?.toString().toLowerCase();
-                      activeLecturerIdentifiers.add(email ?? doc.id);
-                    }
-                  }
+                          for (var doc in userDocs) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final role = data['role']?.toString().toUpperCase() ?? '';
+                            final status = (data['status'] ?? 'active').toString().toLowerCase();
+                            if (role == 'LECTURER' && status == 'active') {
+                              final email = data['email']?.toString().toLowerCase();
+                              activeLecturerIdentifiers.add(email ?? doc.id);
+                            }
+                          }
 
-                  final totalActiveStudents = activeStudentIdentifiers.length;
-                  final totalActiveLecturers = activeLecturerIdentifiers.length;
+                          final totalActiveStudents = activeStudentIdentifiers.length;
+                          final totalActiveLecturers = activeLecturerIdentifiers.length;
+                          final totalSubjects = subjectDocs.length;
 
-                  return Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      children: [
-                        _dashboardCard(
-                          icon: Icons.people_rounded,
-                          title: 'Students',
-                          value: '$totalActiveStudents',
-                          color: Colors.tealAccent,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const StudentsListScreen()),
-                            );
-                          },
-                        ),
-                        _dashboardCard(
-                          icon: Icons.school_rounded,
-                          title: 'Lecturers',
-                          value: '$totalActiveLecturers',
-                          color: Colors.amberAccent,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const LecturersListScreen()),
-                            );
-                          },
-                        ),
-                        _dashboardCard(
-                          icon: Icons.book_rounded,
-                          title: 'Subjects',
-                          value: '0',
-                          color: Colors.indigoAccent,
-                        ),
-                        _dashboardCard(
-                          icon: Icons.assignment_rounded,
-                          title: 'Assignments',
-                          value: '0',
-                          color: Colors.orangeAccent,
-                        ),
-                      ],
-                    ),
+                          // Only count active enrollments
+                          final totalActiveEnrollments = enrollmentDocs.where((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            return (data['status'] ?? 'active').toString().toLowerCase() == 'active';
+                          }).length;
+
+                          return Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: GridView.count(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              children: [
+                                _dashboardCard(
+                                  icon: Icons.people_rounded,
+                                  title: 'Students',
+                                  value: '$totalActiveStudents',
+                                  color: Colors.tealAccent,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const StudentsListScreen()),
+                                    );
+                                  },
+                                ),
+                                _dashboardCard(
+                                  icon: Icons.school_rounded,
+                                  title: 'Lecturers',
+                                  value: '$totalActiveLecturers',
+                                  color: Colors.amberAccent,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const LecturersListScreen()),
+                                    );
+                                  },
+                                ),
+                                _dashboardCard(
+                                  icon: Icons.book_rounded,
+                                  title: 'Subjects',
+                                  value: '$totalSubjects',
+                                  color: Colors.indigoAccent,
+                                ),
+                                _dashboardCard(
+                                  icon: Icons.assignment_ind_rounded,
+                                  title: 'Enrollments',
+                                  value: '$totalActiveEnrollments',
+                                  color: Colors.teal,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const EnrollmentsListScreen()),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
                   );
                 },
               );
