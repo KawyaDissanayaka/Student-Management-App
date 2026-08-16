@@ -1,0 +1,275 @@
+import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
+import '../../auth/login_screen.dart';
+
+class StudentHomeScreen extends StatelessWidget {
+  final Map<String, dynamic>? userData;
+
+  const StudentHomeScreen({super.key, this.userData});
+
+  @override
+  Widget build(BuildContext context) {
+    final authService = AuthService();
+    final name = userData?['fullName'] ?? authService.currentUser?.displayName ?? 'Student';
+    final email = userData?['email'] ?? authService.currentUser?.email ?? '';
+    final studentId = userData?['studentId'] ?? 'STU-1002';
+    final department = userData?['department'] ?? 'Computer Science';
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E293B),
+        elevation: 0,
+        title: const Row(
+          children: [
+            Icon(Icons.school_rounded, color: Colors.tealAccent),
+            SizedBox(width: 8),
+            Text(
+              'Student Portal',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+            tooltip: 'Sign Out',
+            onPressed: () async {
+              await authService.signOut();
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Welcome Header Card
+            Container(
+              padding: const EdgeInsets.all(20.0),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0D9488), Color(0xFF0F766E)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.teal.withAlpha(50),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.white24,
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : 'S',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome back, $name!',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$department • ID: $studentId',
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                        Text(
+                          email,
+                          style: const TextStyle(color: Colors.white60, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Quick Metrics Row
+            Row(
+              children: [
+                _buildStatCard(
+                  title: 'GPA Score',
+                  value: '3.82',
+                  icon: Icons.auto_graph_rounded,
+                  color: Colors.amberAccent,
+                ),
+                const SizedBox(width: 12),
+                _buildStatCard(
+                  title: 'Attendance',
+                  value: '94%',
+                  icon: Icons.check_circle_outline_rounded,
+                  color: Colors.tealAccent,
+                ),
+                const SizedBox(width: 12),
+                _buildStatCard(
+                  title: 'Enrolled',
+                  value: '5 Courses',
+                  icon: Icons.book_rounded,
+                  color: Colors.indigoAccent,
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+
+            // Enrolled Courses Title
+            const Text(
+              'My Enrolled Courses',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Course Cards
+            _buildCourseCard(
+              code: 'CS201',
+              title: 'Data Structures & Algorithms',
+              instructor: 'Dr. Perera',
+              schedule: 'Mon, Wed 10:00 AM',
+            ),
+            _buildCourseCard(
+              code: 'CS204',
+              title: 'Mobile Application Development',
+              instructor: 'Prof. Silva',
+              schedule: 'Tue, Thu 01:30 PM',
+            ),
+            _buildCourseCard(
+              code: 'SE302',
+              title: 'Software Engineering Principles',
+              instructor: 'Dr. Fernando',
+              schedule: 'Friday 09:00 AM',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(14.0),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 10),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCourseCard({
+    required String code,
+    required String title,
+    required String instructor,
+    required String schedule,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(14.0),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.indigo.withAlpha(40),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              code,
+              style: const TextStyle(
+                color: Colors.indigoAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$instructor • $schedule',
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey, size: 16),
+        ],
+      ),
+    );
+  }
+}
