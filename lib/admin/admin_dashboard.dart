@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../screens/admin/students_list_screen.dart';
 import '../screens/admin/lecturers_list_screen.dart';
+import '../screens/admin/subjects_list_screen.dart';
 import '../screens/admin/enrollments_list_screen.dart';
+import '../screens/admin/attendance_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
 
@@ -96,6 +98,10 @@ class AdminDashboard extends StatelessWidget {
               title: const Text('Subjects', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SubjectsListScreen()),
+                );
               },
             ),
             ListTile(
@@ -103,6 +109,10 @@ class AdminDashboard extends StatelessWidget {
               title: const Text('Attendance', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AttendanceListScreen()),
+                );
               },
             ),
             ListTile(
@@ -158,117 +168,222 @@ class AdminDashboard extends StatelessWidget {
                       return StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance.collection('enrollments').snapshots(),
                         builder: (context, enrollmentsSnap) {
-                          final studentDocs = studentsSnap.hasData ? studentsSnap.data!.docs : [];
-                          final lecturerDocs = lecturersSnap.hasData ? lecturersSnap.data!.docs : [];
-                          final userDocs = usersSnap.hasData ? usersSnap.data!.docs : [];
-                          final subjectDocs = subjectsSnap.hasData ? subjectsSnap.data!.docs : [];
-                          final enrollmentDocs = enrollmentsSnap.hasData ? enrollmentsSnap.data!.docs : [];
+                          return StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance.collection('attendance').snapshots(),
+                            builder: (context, attendanceSnap) {
+                              return StreamBuilder<DocumentSnapshot>(
+                                stream: FirebaseFirestore.instance.collection('settings').doc('attendance_config').snapshots(),
+                                builder: (context, settingsSnap) {
+                                  final studentDocs = studentsSnap.hasData ? studentsSnap.data!.docs : [];
+                                  final lecturerDocs = lecturersSnap.hasData ? lecturersSnap.data!.docs : [];
+                                  final userDocs = usersSnap.hasData ? usersSnap.data!.docs : [];
+                                  final subjectDocs = subjectsSnap.hasData ? subjectsSnap.data!.docs : [];
+                                  final enrollmentDocs = enrollmentsSnap.hasData ? enrollmentsSnap.data!.docs : [];
+                                  final attendanceDocs = attendanceSnap.hasData ? attendanceSnap.data!.docs : [];
 
-                          // 1. Calculate Active Students Count
-                          final Set<String> activeStudentIdentifiers = {};
+                                  // Extract threshold (default to 80%)
+                                  double threshold = 80.0;
+                                  if (settingsSnap.hasData && settingsSnap.data!.exists) {
+                                    final data = settingsSnap.data!.data() as Map<String, dynamic>?;
+                                    if (data != null && data['threshold'] != null) {
+                                      threshold = (data['threshold'] as num).toDouble();
+                                    }
+                                  }
 
-                          for (var doc in studentDocs) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            final status = (data['status'] ?? 'active').toString().toLowerCase();
-                            if (status == 'active') {
-                              final email = data['email']?.toString().toLowerCase();
-                              activeStudentIdentifiers.add(email ?? doc.id);
-                            }
-                          }
+                                  // 1. Calculate Active Students Count
+                                  final Set<String> activeStudentIdentifiers = {};
 
-                          for (var doc in userDocs) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            final role = data['role']?.toString().toUpperCase() ?? '';
-                            final status = (data['status'] ?? 'active').toString().toLowerCase();
-                            if (role == 'STUDENT' && status == 'active') {
-                              final email = data['email']?.toString().toLowerCase();
-                              activeStudentIdentifiers.add(email ?? doc.id);
-                            }
-                          }
+                                  for (var doc in studentDocs) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    final status = (data['status'] ?? 'active').toString().toLowerCase();
+                                    if (status == 'active') {
+                                      final email = data['email']?.toString().toLowerCase();
+                                      activeStudentIdentifiers.add(email ?? doc.id);
+                                    }
+                                  }
 
-                          // 2. Calculate Active Lecturers Count
-                          final Set<String> activeLecturerIdentifiers = {};
+                                  for (var doc in userDocs) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    final role = data['role']?.toString().toUpperCase() ?? '';
+                                    final status = (data['status'] ?? 'active').toString().toLowerCase();
+                                    if (role == 'STUDENT' && status == 'active') {
+                                      final email = data['email']?.toString().toLowerCase();
+                                      activeStudentIdentifiers.add(email ?? doc.id);
+                                    }
+                                  }
 
-                          for (var doc in lecturerDocs) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            final status = (data['status'] ?? 'active').toString().toLowerCase();
-                            if (status == 'active') {
-                              final email = data['email']?.toString().toLowerCase();
-                              activeLecturerIdentifiers.add(email ?? doc.id);
-                            }
-                          }
+                                  // 2. Calculate Active Lecturers Count
+                                  final Set<String> activeLecturerIdentifiers = {};
 
-                          for (var doc in userDocs) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            final role = data['role']?.toString().toUpperCase() ?? '';
-                            final status = (data['status'] ?? 'active').toString().toLowerCase();
-                            if (role == 'LECTURER' && status == 'active') {
-                              final email = data['email']?.toString().toLowerCase();
-                              activeLecturerIdentifiers.add(email ?? doc.id);
-                            }
-                          }
+                                  for (var doc in lecturerDocs) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    final status = (data['status'] ?? 'active').toString().toLowerCase();
+                                    if (status == 'active') {
+                                      final email = data['email']?.toString().toLowerCase();
+                                      activeLecturerIdentifiers.add(email ?? doc.id);
+                                    }
+                                  }
 
-                          final totalActiveStudents = activeStudentIdentifiers.length;
-                          final totalActiveLecturers = activeLecturerIdentifiers.length;
-                          final totalSubjects = subjectDocs.length;
+                                  for (var doc in userDocs) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    final role = data['role']?.toString().toUpperCase() ?? '';
+                                    final status = (data['status'] ?? 'active').toString().toLowerCase();
+                                    if (role == 'LECTURER' && status == 'active') {
+                                      final email = data['email']?.toString().toLowerCase();
+                                      activeLecturerIdentifiers.add(email ?? doc.id);
+                                    }
+                                  }
 
-                          // Only count active enrollments
-                          final totalActiveEnrollments = enrollmentDocs.where((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            return (data['status'] ?? 'active').toString().toLowerCase() == 'active';
-                          }).length;
+                                  final totalActiveStudents = activeStudentIdentifiers.length;
+                                  final totalActiveLecturers = activeLecturerIdentifiers.length;
+                                  final totalSubjects = subjectDocs.length;
 
-                          return Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: GridView.count(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              children: [
-                                _dashboardCard(
-                                  icon: Icons.people_rounded,
-                                  title: 'Students',
-                                  value: '$totalActiveStudents',
-                                  color: Colors.tealAccent,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => const StudentsListScreen()),
-                                    );
-                                  },
-                                ),
-                                _dashboardCard(
-                                  icon: Icons.school_rounded,
-                                  title: 'Lecturers',
-                                  value: '$totalActiveLecturers',
-                                  color: Colors.amberAccent,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => const LecturersListScreen()),
-                                    );
-                                  },
-                                ),
-                                _dashboardCard(
-                                  icon: Icons.book_rounded,
-                                  title: 'Subjects',
-                                  value: '$totalSubjects',
-                                  color: Colors.indigoAccent,
-                                ),
-                                _dashboardCard(
-                                  icon: Icons.assignment_ind_rounded,
-                                  title: 'Enrollments',
-                                  value: '$totalActiveEnrollments',
-                                  color: Colors.teal,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => const EnrollmentsListScreen()),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
+                                  // Only count active enrollments
+                                  final totalActiveEnrollments = enrollmentDocs.where((doc) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    return (data['status'] ?? 'active').toString().toLowerCase() == 'active';
+                                  }).length;
+
+                                  // 3. Attendance metrics calculation
+                                  // Skip cancelled classes
+                                  final validAttendanceDocs = attendanceDocs.where((doc) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    return (data['status'] ?? '').toString().toLowerCase() != 'cancelled';
+                                  }).toList();
+
+                                  final totalAttendanceRecords = validAttendanceDocs.length;
+
+                                  final attendedCount = validAttendanceDocs.where((doc) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    final status = (data['status'] ?? '').toString().toLowerCase();
+                                    return status == 'present' || status == 'late';
+                                  }).length;
+
+                                  final double avgAttendance = totalAttendanceRecords > 0
+                                      ? (attendedCount / totalAttendanceRecords) * 100
+                                      : 0.0;
+
+                                  // Group by studentDocId to find low attendance students
+                                  final Map<String, List<Map<String, dynamic>>> studentGroup = {};
+                                  for (var doc in validAttendanceDocs) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    final studentId = data['studentDocId'] ?? '';
+                                    if (studentId.isNotEmpty) {
+                                      if (!studentGroup.containsKey(studentId)) {
+                                        studentGroup[studentId] = [];
+                                      }
+                                      studentGroup[studentId]!.add(data);
+                                    }
+                                  }
+
+                                  int lowAttendanceCount = 0;
+                                  studentGroup.forEach((studentId, records) {
+                                    final studentAttended = records.where((r) {
+                                      final status = (r['status'] ?? '').toString().toLowerCase();
+                                      return status == 'present' || status == 'late';
+                                    }).length;
+                                    final total = records.length;
+                                    if (total > 0) {
+                                      final double pct = (studentAttended / total) * 100;
+                                      if (pct < threshold) {
+                                        lowAttendanceCount++;
+                                      }
+                                    }
+                                  });
+
+                                  return SingleChildScrollView(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        GridView.count(
+                                          shrinkWrap: true,
+                                          physics: const NeverScrollableScrollPhysics(),
+                                          crossAxisCount: 2,
+                                          crossAxisSpacing: 12,
+                                          mainAxisSpacing: 12,
+                                          childAspectRatio: 1.2,
+                                          children: [
+                                            _dashboardCard(
+                                              icon: Icons.people_rounded,
+                                              title: 'Students',
+                                              value: '$totalActiveStudents',
+                                              color: Colors.tealAccent,
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(builder: (context) => const StudentsListScreen()),
+                                                );
+                                              },
+                                            ),
+                                            _dashboardCard(
+                                              icon: Icons.school_rounded,
+                                              title: 'Lecturers',
+                                              value: '$totalActiveLecturers',
+                                              color: Colors.amberAccent,
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(builder: (context) => const LecturersListScreen()),
+                                                );
+                                              },
+                                            ),
+                                            _dashboardCard(
+                                              icon: Icons.book_rounded,
+                                              title: 'Subjects',
+                                              value: '$totalSubjects',
+                                              color: Colors.indigoAccent,
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(builder: (context) => const SubjectsListScreen()),
+                                                );
+                                              },
+                                            ),
+                                            _dashboardCard(
+                                              icon: Icons.assignment_ind_rounded,
+                                              title: 'Enrollments',
+                                              value: '$totalActiveEnrollments',
+                                              color: Colors.teal,
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(builder: (context) => const EnrollmentsListScreen()),
+                                                );
+                                              },
+                                            ),
+                                            _dashboardCard(
+                                              icon: Icons.calendar_month_rounded,
+                                              title: 'Avg Attendance',
+                                              value: '${avgAttendance.toStringAsFixed(1)}%',
+                                              color: Colors.greenAccent,
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(builder: (context) => const AttendanceListScreen()),
+                                                );
+                                              },
+                                            ),
+                                            _dashboardCard(
+                                              icon: Icons.warning_amber_rounded,
+                                              title: 'Low Attendance',
+                                              value: '$lowAttendanceCount Students',
+                                              color: Colors.redAccent,
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(builder: (context) => const AttendanceListScreen()),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
                           );
                         },
                       );
@@ -308,18 +423,20 @@ class AdminDashboard extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 title,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 value,
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: color,
-                  fontSize: 28,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
