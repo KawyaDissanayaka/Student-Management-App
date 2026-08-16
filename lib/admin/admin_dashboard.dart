@@ -5,6 +5,7 @@ import '../screens/admin/lecturers_list_screen.dart';
 import '../screens/admin/subjects_list_screen.dart';
 import '../screens/admin/enrollments_list_screen.dart';
 import '../screens/admin/attendance_list_screen.dart';
+import '../screens/admin/assignments_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
 
@@ -120,6 +121,10 @@ class AdminDashboard extends StatelessWidget {
               title: const Text('Assignments', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AssignmentsListScreen()),
+                );
               },
             ),
             ListTile(

@@ -581,7 +581,7 @@ class _SubjectsListScreenState extends State<SubjectsListScreen> {
     void Function(String?) onChanged,
   ) {
     return DropdownButtonFormField<String>(
-      value: currentValue,
+      initialValue: currentValue,
       dropdownColor: const Color(0xFF1E293B),
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
@@ -656,7 +656,7 @@ class _SubjectsListScreenState extends State<SubjectsListScreen> {
                           .where((l) => l.status.toLowerCase() == 'active')
                           .toList();
                       return DropdownButtonFormField<String>(
-                        value: selectedLecturerId ?? 'none',
+                        initialValue: selectedLecturerId ?? 'none',
                         dropdownColor: const Color(0xFF1E293B),
                         style: const TextStyle(color: Colors.white),
                         decoration: _fieldDecoration('Assign Lecturer'),
@@ -699,7 +699,7 @@ class _SubjectsListScreenState extends State<SubjectsListScreen> {
                   const SizedBox(height: 12),
                   // Academic Year
                   DropdownButtonFormField<String>(
-                    value: selectedYear,
+                    initialValue: selectedYear,
                     dropdownColor: const Color(0xFF1E293B),
                     style: const TextStyle(color: Colors.white),
                     decoration: _fieldDecoration('Academic Year'),
@@ -714,7 +714,7 @@ class _SubjectsListScreenState extends State<SubjectsListScreen> {
                   const SizedBox(height: 12),
                   // Semester
                   DropdownButtonFormField<String>(
-                    value: selectedSemester,
+                    initialValue: selectedSemester,
                     dropdownColor: const Color(0xFF1E293B),
                     style: const TextStyle(color: Colors.white),
                     decoration: _fieldDecoration('Semester'),
@@ -729,7 +729,7 @@ class _SubjectsListScreenState extends State<SubjectsListScreen> {
                   const SizedBox(height: 12),
                   // Status
                   DropdownButtonFormField<String>(
-                    value: selectedStatus,
+                    initialValue: selectedStatus,
                     dropdownColor: const Color(0xFF1E293B),
                     style: const TextStyle(color: Colors.white),
                     decoration: _fieldDecoration('Status'),
