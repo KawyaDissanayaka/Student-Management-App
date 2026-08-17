@@ -31,6 +31,16 @@ class AdminDashboard extends StatelessWidget {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.settings_rounded, color: Colors.lightBlueAccent),
+            tooltip: 'Settings',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminSettingsScreen()),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
             tooltip: 'Sign Out',
             onPressed: () async {
@@ -51,21 +61,36 @@ class AdminDashboard extends StatelessWidget {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF4F46E5), Color(0xFF3730A3)],
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminProfileScreen()),
+                );
+              },
+              child: UserAccountsDrawerHeader(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF4F46E5), Color(0xFF3730A3)],
+                  ),
+                ),
+                currentAccountPicture: const CircleAvatar(
+                  backgroundColor: Colors.white24,
+                  child: Icon(Icons.admin_panel_settings_rounded, size: 36, color: Colors.white),
+                ),
+                accountName: const Text(
+                  'Admin Panel',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                accountEmail: const Row(
+                  children: [
+                    Text('admin@system.com'),
+                    SizedBox(width: 6),
+                    Icon(Icons.edit_rounded, size: 14, color: Colors.white70),
+                  ],
                 ),
               ),
-              currentAccountPicture: const CircleAvatar(
-                backgroundColor: Colors.white24,
-                child: Icon(Icons.admin_panel_settings_rounded, size: 36, color: Colors.white),
-              ),
-              accountName: const Text(
-                'Admin Panel',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              accountEmail: const Text('admin@system.com'),
             ),
             ListTile(
               leading: const Icon(Icons.people_rounded, color: Colors.tealAccent),
@@ -177,6 +202,45 @@ class AdminDashboard extends StatelessWidget {
                 );
               },
             ),
+            const Divider(color: Colors.white12),
+            ListTile(
+              leading: const Icon(Icons.person_outline, color: Colors.tealAccent),
+              title: const Text('Profile', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminProfileScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_rounded, color: Colors.lightBlueAccent),
+              title: const Text('Settings', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminSettingsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+              title: const Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
+              onTap: () async {
+                Navigator.pop(context);
+                await AuthService().signOut();
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),

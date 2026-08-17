@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
-import '../../services/attendance_service.dart';
 import '../../auth/login_screen.dart';
 import 'admin_profile_screen.dart';
 
@@ -13,7 +12,6 @@ class AdminSettingsScreen extends StatefulWidget {
 }
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
-  final AttendanceService _attendanceService = AttendanceService();
   final AuthService _authService = AuthService();
 
   double _threshold = 80.0;
@@ -112,7 +110,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               await _authService.signOut();
-              if (context.mounted) {
+              if (mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -241,7 +239,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                       SwitchListTile(
                         value: _appNotifications,
                         onChanged: (val) => setState(() => _appNotifications = val),
-                        activeColor: Colors.tealAccent,
+                        activeThumbColor: Colors.tealAccent,
                         title: const Text('In-App Notification Alerts', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                         subtitle: const Text('Broadcast live announcements and notices to users', style: TextStyle(color: Colors.grey, fontSize: 12)),
                       ),
@@ -249,7 +247,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                       SwitchListTile(
                         value: _lowAttendanceAlerts,
                         onChanged: (val) => setState(() => _lowAttendanceAlerts = val),
-                        activeColor: Colors.tealAccent,
+                        activeThumbColor: Colors.tealAccent,
                         title: const Text('Low Attendance Auto Warnings', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                         subtitle: const Text('Notify students when falling below threshold', style: TextStyle(color: Colors.grey, fontSize: 12)),
                       ),
@@ -257,7 +255,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                       SwitchListTile(
                         value: _taskDueAlerts,
                         onChanged: (val) => setState(() => _taskDueAlerts = val),
-                        activeColor: Colors.tealAccent,
+                        activeThumbColor: Colors.tealAccent,
                         title: const Text('Task Due Date Reminders', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                         subtitle: const Text('Alert assignees 24h before task due deadline', style: TextStyle(color: Colors.grey, fontSize: 12)),
                       ),

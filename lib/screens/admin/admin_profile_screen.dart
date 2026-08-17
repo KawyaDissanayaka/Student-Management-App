@@ -14,7 +14,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   
   bool _isLoading = false;
   String _userEmail = '';
-  String _userRole = 'ADMIN';
+  final String _userRole = 'ADMIN';
 
   @override
   void initState() {
@@ -190,25 +190,26 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                         return;
                       }
 
+                      final messenger = ScaffoldMessenger.of(context);
+                      final nav = Navigator.of(ctx);
+
                       setDialogState(() => isSubmitting = true);
                       try {
                         await _authService.changePassword(
                           currentPassword: currentPass,
                           newPassword: newPass,
                         );
-                        if (mounted) {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Password changed successfully!'), backgroundColor: Colors.green),
-                          );
+                        if (ctx.mounted) {
+                          nav.pop();
                         }
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('Password changed successfully!'), backgroundColor: Colors.green),
+                        );
                       } catch (e) {
                         setDialogState(() => isSubmitting = false);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.redAccent),
-                          );
-                        }
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.redAccent),
+                        );
                       }
                     },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.amberAccent),
