@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get current user's document
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    // Role-based helper functions
+    function isAdmin() {
+      return isAuthenticated() && (
+        getUserData().role == 'ADMIN' ||
+        request.auth.token.email.matches('admin.*') ||
+        request.auth.token.email == 'admin@system.com'
+      );
+    }
+    
+    function isLecturer() {
+      return isAuthenticated() && getUserData().role == 'LECTURER';
+    }
+    
+    function isStudent() {
+      return isAuthenticated() && getUserData().role == 'STUDENT';
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+    }
+    
+    // 2. Students Collection
+    match /students/{studentDocId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // 3. Lecturers Collection
+    match /lecturers/{lecturerDocId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // 4. Subjects Collection
+    match /subjects/{subjectDocId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // 5. Enrollments Collection
+    match /enrollments/{enrollmentDocId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // 6. Attendance Collection
+    match /attendance/{attendanceDocId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isLecturer();
+    }
+    
+    // 7. Assignments Collection
+    match /assignments/{assignmentDocId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isLecturer();
+    }
+    
+    // 8. Submissions Collection
+    match /submissions/{submissionDocId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin() || isLecturer();
+      allow delete: if isAdmin();
+    }
+    
+    // 9. Tasks Collection
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+      allow update: if isAuthenticated();
+    }
+    
+    // 10. Announcements Collection
+    match /announcements/{announcementId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // 11. Notifications Collection
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+      allow update: if isAuthenticated(); // For marking as read
+    }
+    
+    // 12. Settings Collection
+    match /settings/{settingDocId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
