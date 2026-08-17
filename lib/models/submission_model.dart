@@ -13,9 +13,17 @@ class SubmissionModel {
   final String submittedAt; // ISO-8601 datetime
   final bool isLate;
   final String? attachmentUrl;
+  final String? fileName;
+  final String? fileType;
+  final String? fileSize;
   final String? notes;
   final num? mark;
   final String? feedback;
+  final String status; // 'submitted' | 'reviewed' | 'late' | 'resubmitted'
+  final int attemptNumber;
+  final bool isFinal;
+  final String? gradedAt;
+  final String? gradedBy;
 
   SubmissionModel({
     this.docId,
@@ -30,9 +38,17 @@ class SubmissionModel {
     required this.submittedAt,
     required this.isLate,
     this.attachmentUrl,
+    this.fileName,
+    this.fileType = 'PDF',
+    this.fileSize = '2.5 MB',
     this.notes,
     this.mark,
     this.feedback,
+    this.status = 'submitted',
+    this.attemptNumber = 1,
+    this.isFinal = true,
+    this.gradedAt,
+    this.gradedBy,
   });
 
   Map<String, dynamic> toMap() {
@@ -48,14 +64,27 @@ class SubmissionModel {
       'submittedAt': submittedAt,
       'isLate': isLate,
       'attachmentUrl': attachmentUrl,
+      'fileName': fileName,
+      'fileType': fileType,
+      'fileSize': fileSize,
       'notes': notes,
       'mark': mark,
       'feedback': feedback,
+      'status': status,
+      'attemptNumber': attemptNumber,
+      'isFinal': isFinal,
+      'gradedAt': gradedAt,
+      'gradedBy': gradedBy,
     };
   }
 
   factory SubmissionModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
+    final markVal = data['mark'] as num?;
+    final isLateVal = (data['isLate'] as bool?) ?? false;
+
+    String computedStatus = data['status'] ?? (markVal != null ? 'reviewed' : (isLateVal ? 'late' : 'submitted'));
+
     return SubmissionModel(
       docId: doc.id,
       assignmentId: data['assignmentId'] ?? '',
@@ -67,31 +96,19 @@ class SubmissionModel {
       studentName: data['studentName'] ?? '',
       studentEmail: data['studentEmail'] ?? '',
       submittedAt: data['submittedAt'] ?? '',
-      isLate: data['isLate'] ?? false,
+      isLate: isLateVal,
       attachmentUrl: data['attachmentUrl'],
+      fileName: data['fileName'],
+      fileType: data['fileType'] ?? 'PDF',
+      fileSize: data['fileSize'] ?? '2.5 MB',
       notes: data['notes'],
-      mark: data['mark'],
+      mark: markVal,
       feedback: data['feedback'],
-    );
-  }
-
-  factory SubmissionModel.fromMap(Map<String, dynamic> map, {String? id}) {
-    return SubmissionModel(
-      docId: id,
-      assignmentId: map['assignmentId'] ?? '',
-      assignmentTitle: map['assignmentTitle'] ?? '',
-      subjectCode: map['subjectCode'] ?? '',
-      subjectName: map['subjectName'] ?? '',
-      studentDocId: map['studentDocId'] ?? '',
-      studentId: map['studentId'] ?? '',
-      studentName: map['studentName'] ?? '',
-      studentEmail: map['studentEmail'] ?? '',
-      submittedAt: map['submittedAt'] ?? '',
-      isLate: map['isLate'] ?? false,
-      attachmentUrl: map['attachmentUrl'],
-      notes: map['notes'],
-      mark: map['mark'],
-      feedback: map['feedback'],
+      status: computedStatus,
+      attemptNumber: (data['attemptNumber'] as int?) ?? 1,
+      isFinal: (data['isFinal'] as bool?) ?? true,
+      gradedAt: data['gradedAt'],
+      gradedBy: data['gradedBy'],
     );
   }
 }

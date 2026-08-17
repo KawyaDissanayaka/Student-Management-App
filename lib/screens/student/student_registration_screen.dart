@@ -149,7 +149,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
-                                    isEnrolled ? 'ENROLLED' : '${s.credits} CREDITS',
+                                    isEnrolled ? 'ENROLLED' : '3 CREDITS',
                                     style: TextStyle(
                                       color: isEnrolled ? Colors.greenAccent : Colors.indigoAccent,
                                       fontSize: 10,
@@ -175,7 +175,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Department: ${s.department}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                                Text('Lecturer: ${s.lecturerName.isNotEmpty ? s.lecturerName : "Faculty"}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
                                 if (isEnrolled)
                                   const Row(
                                     children: [

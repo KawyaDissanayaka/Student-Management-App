@@ -26,7 +26,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
 
     showModalBottomSheet(
       context: context,
-      isScrollable: true,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF1E293B),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
@@ -58,7 +58,7 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
 
               // Fee Type Selector
               DropdownButtonFormField<String>(
-                value: selectedFeeType,
+                initialValue: selectedFeeType,
                 dropdownColor: const Color(0xFF0F172A),
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(

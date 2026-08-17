@@ -38,7 +38,10 @@ class StudentPortalService {
   // ─── MATERIALS ────────────────────────────────────────────────────────────
   Stream<List<MaterialModel>> getMaterialsForSubject(String subjectCode) {
     return _materialsRef.where('subjectCode', isEqualTo: subjectCode).snapshots().map((snap) {
-      final list = snap.docs.map((d) => MaterialModel.fromFirestore(d)).toList();
+      final list = snap.docs
+          .map((d) => MaterialModel.fromFirestore(d))
+          .where((m) => m.status.toLowerCase() == 'active')
+          .toList();
       list.sort((a, b) => a.weekNumber.compareTo(b.weekNumber));
       return list;
     });
@@ -53,11 +56,13 @@ class StudentPortalService {
     });
   }
 
-  // ─── RESULTS & GPA ────────────────────────────────────────────────────────
   Stream<List<ResultModel>> getStudentResultsStream(String studentEmail) {
     final cleanEmail = studentEmail.trim().toLowerCase();
     return _resultsRef.where('studentEmail', isEqualTo: cleanEmail).snapshots().map((snap) {
-      final list = snap.docs.map((d) => ResultModel.fromFirestore(d)).toList();
+      final list = snap.docs
+          .map((d) => ResultModel.fromFirestore(d))
+          .where((r) => r.status.toLowerCase() != 'draft')
+          .toList();
       list.sort((a, b) => a.semester.compareTo(b.semester));
       return list;
     });

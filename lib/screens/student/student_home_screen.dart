@@ -167,7 +167,7 @@ class StudentHomeScreen extends StatelessWidget {
                                   final balance = (450000.0 - totalPaid).clamp(0.0, 450000.0);
 
                                   final allAssignments = (assignSnap.data?.docs ?? [])
-                                      .map((d) => AssignmentModel.fromFirestore(d))
+                                      .map((d) => AssignmentModel.fromFirestore(d as DocumentSnapshot<Map<String, dynamic>>))
                                       .where((a) => a.status == 'published' && enrolledCodes.contains(a.subjectCode))
                                       .toList();
                                   final pendingAssignments = allAssignments.length;
@@ -346,7 +346,7 @@ class StudentHomeScreen extends StatelessWidget {
                                             Navigator.push(context, MaterialPageRoute(builder: (context) => StudentRegistrationScreen(userData: userData)));
                                           }),
                                           _buildServiceTile('Notices', Icons.campaign_rounded, Colors.pinkAccent, () {
-                                            Navigator.push(context, MaterialPageRoute(builder: (context) => UserAnnouncementsScreen(userEmail: email, userRole: 'Student')));
+                                            Navigator.push(context, MaterialPageRoute(builder: (context) => UserAnnouncementsScreen(userEmail: email, userName: name, userRole: 'Student')));
                                           }),
                                           _buildServiceTile('Campus Map', Icons.map_rounded, Colors.tealAccent, () {
                                             Navigator.push(context, MaterialPageRoute(builder: (context) => const CampusMapScreen()));

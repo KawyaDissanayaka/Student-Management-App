@@ -310,7 +310,7 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Max Marks: ${a.maxMarks}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text('Semester: ${a.semester}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                       ElevatedButton.icon(
                         onPressed: () {
                           _showSubmitModal(context, a);
@@ -340,7 +340,7 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
 
     showModalBottomSheet(
       context: context,
-      isScrollable: true,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF1E293B),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(

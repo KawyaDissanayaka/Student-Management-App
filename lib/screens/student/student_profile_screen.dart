@@ -71,7 +71,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       final docId = _profile['docId'];
-      final email = widget.userData?['email'] ?? _authService.currentUser?.email ?? '';
 
       final updateData = {
         'phone': _phoneController.text.trim(),

@@ -10,6 +10,7 @@ class SubjectModel {
   final String academicYear;
   final String lecturerName;
   final String? lecturerId;
+  final int credits;
   final String status;
   final String? createdAt;
 
@@ -23,6 +24,7 @@ class SubjectModel {
     required this.academicYear,
     required this.lecturerName,
     this.lecturerId,
+    this.credits = 3,
     this.status = 'active',
     this.createdAt,
   });
@@ -37,6 +39,7 @@ class SubjectModel {
       'academicYear': academicYear,
       'lecturerName': lecturerName,
       'lecturerId': lecturerId,
+      'credits': credits,
       'status': status,
       'createdAt': createdAt ?? DateTime.now().toIso8601String(),
     };
@@ -54,6 +57,7 @@ class SubjectModel {
       academicYear: data['academicYear'] ?? '',
       lecturerName: data['lecturerName'] ?? 'Unassigned',
       lecturerId: data['lecturerId'],
+      credits: (data['credits'] as num?)?.toInt() ?? 3,
       status: data['status'] ?? 'active',
       createdAt: data['createdAt']?.toString(),
     );
@@ -70,6 +74,7 @@ class SubjectModel {
       academicYear: map['academicYear'] ?? '',
       lecturerName: map['lecturerName'] ?? 'Unassigned',
       lecturerId: map['lecturerId'],
+      credits: (map['credits'] as num?)?.toInt() ?? 3,
       status: map['status'] ?? 'active',
       createdAt: map['createdAt']?.toString(),
     );

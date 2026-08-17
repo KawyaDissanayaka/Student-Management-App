@@ -165,11 +165,11 @@ class _StudentSettingsScreenState extends State<StudentSettingsScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
           ElevatedButton(
             onPressed: () async {
+              final nav = Navigator.of(context);
               Navigator.pop(ctx);
               await _authService.signOut();
-              if (context.mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
+              if (mounted) {
+                nav.pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
                   (route) => false,
                 );

@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'admin/admin_dashboard_screen.dart';
 import 'lecturer/lecturer_dashboard_screen.dart';
-import 'student/student_home_screen.dart';
+import 'student/student_navigation_shell.dart';
 import '../auth/login_screen.dart';
 
 class RoleRouterScreen extends StatefulWidget {
@@ -46,8 +46,8 @@ class _RoleRouterScreenState extends State<RoleRouterScreen> {
         }
 
         if (snapshot.hasError) {
-          // Fallback to Student Home if Firestore fails or offline
-          return StudentHomeScreen(userData: {
+          // Fallback to Student Shell if Firestore fails or offline
+          return StudentNavigationShell(userData: {
             'fullName': user.displayName ?? user.email?.split('@').first,
             'email': user.email,
           });
@@ -61,7 +61,7 @@ class _RoleRouterScreenState extends State<RoleRouterScreen> {
         } else if (rawRole == 'LECTURER') {
           return LecturerDashboardScreen(userData: data);
         } else {
-          return StudentHomeScreen(userData: data);
+          return StudentNavigationShell(userData: data);
         }
       },
     );

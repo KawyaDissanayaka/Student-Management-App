@@ -10,12 +10,20 @@ class ResultModel {
   final String subjectCode;
   final String subjectName;
   final int credits;
-  final double marks; // 0.0 - 100.0
+  final double marks; // 0.0 - 100.0 (Weighted Total)
   final String grade; // 'A+', 'A', 'B+', etc.
   final double gradePoint; // 4.0, 3.7, etc.
   final String semester;
   final String academicYear;
   final String publishedDate;
+  final String status; // 'draft' | 'published' | 'locked'
+  final double? assignmentMarks;
+  final double? midtermMarks;
+  final double? finalExamMarks;
+  final String? lecturerName;
+  final String? lecturerEmail;
+  final String? lockedAt;
+  final String? lockedBy;
 
   ResultModel({
     this.docId,
@@ -33,6 +41,14 @@ class ResultModel {
     required this.semester,
     required this.academicYear,
     required this.publishedDate,
+    this.status = 'published',
+    this.assignmentMarks,
+    this.midtermMarks,
+    this.finalExamMarks,
+    this.lecturerName,
+    this.lecturerEmail,
+    this.lockedAt,
+    this.lockedBy,
   });
 
   /// Calculates letter grade from marks
@@ -65,26 +81,34 @@ class ResultModel {
   }
 
   bool get isPassed => grade != 'F' && gradePoint >= 2.0;
+  bool get isLocked => status.toLowerCase() == 'locked';
 
   factory ResultModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
-    final marksVal = (data['marks'] as num?)?.toDouble() ?? 0.0;
     return ResultModel(
       docId: doc.id,
       resultId: data['resultId'] ?? doc.id,
       studentDocId: data['studentDocId'] ?? '',
-      studentOfficialId: data['studentOfficialId'] ?? '',
+      studentOfficialId: data['studentOfficialId'] ?? data['studentId'] ?? '',
       studentEmail: data['studentEmail'] ?? '',
       studentName: data['studentName'] ?? '',
       subjectCode: data['subjectCode'] ?? '',
       subjectName: data['subjectName'] ?? '',
-      credits: (data['credits'] as num?)?.toInt() ?? 3,
-      marks: marksVal,
-      grade: data['grade'] ?? calculateGrade(marksVal),
-      gradePoint: (data['gradePoint'] as num?)?.toDouble() ?? calculateGradePoint(marksVal),
-      semester: data['semester'] ?? 'Semester 1',
-      academicYear: data['academicYear'] ?? '2025/2026',
+      credits: (data['credits'] ?? 3) as int,
+      marks: ((data['marks'] ?? 0) as num).toDouble(),
+      grade: data['grade'] ?? calculateGrade(((data['marks'] ?? 0) as num).toDouble()),
+      gradePoint: ((data['gradePoint'] ?? 0) as num).toDouble(),
+      semester: data['semester'] ?? '',
+      academicYear: data['academicYear'] ?? '',
       publishedDate: data['publishedDate'] ?? '',
+      status: data['status'] ?? 'published',
+      assignmentMarks: (data['assignmentMarks'] as num?)?.toDouble(),
+      midtermMarks: (data['midtermMarks'] as num?)?.toDouble(),
+      finalExamMarks: (data['finalExamMarks'] as num?)?.toDouble(),
+      lecturerName: data['lecturerName'],
+      lecturerEmail: data['lecturerEmail'],
+      lockedAt: data['lockedAt'],
+      lockedBy: data['lockedBy'],
     );
   }
 
@@ -104,6 +128,14 @@ class ResultModel {
       'semester': semester,
       'academicYear': academicYear,
       'publishedDate': publishedDate,
+      'status': status,
+      'assignmentMarks': assignmentMarks,
+      'midtermMarks': midtermMarks,
+      'finalExamMarks': finalExamMarks,
+      'lecturerName': lecturerName,
+      'lecturerEmail': lecturerEmail,
+      'lockedAt': lockedAt,
+      'lockedBy': lockedBy,
     };
   }
 }

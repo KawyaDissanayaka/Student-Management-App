@@ -3,7 +3,7 @@ import '../services/auth_service.dart';
 import '../screens/role_router.dart';
 import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/lecturer/lecturer_dashboard_screen.dart';
-import '../screens/student/student_home_screen.dart';
+import '../screens/student/student_navigation_shell.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => StudentHomeScreen(userData: {
+                builder: (context) => StudentNavigationShell(userData: {
                   'fullName': emailInput.split('@').first,
                   'email': emailInput,
                   'role': 'STUDENT',
@@ -445,7 +445,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const StudentHomeScreen(userData: {
+                              builder: (context) => const StudentNavigationShell(userData: {
                                 'fullName': 'Kawya Dissanayaka',
                                 'email': 'student@system.com',
                                 'role': 'STUDENT',

@@ -12,6 +12,8 @@ import '../screens/admin/notifications_list_screen.dart';
 import '../screens/admin/reports_screen.dart';
 import '../screens/admin/admin_profile_screen.dart';
 import '../screens/admin/admin_settings_screen.dart';
+import '../screens/admin/admin_timetable_screen.dart';
+import '../screens/admin/halls_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
 
@@ -137,7 +139,29 @@ class AdminDashboard extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.calendar_month_rounded, color: Colors.greenAccent),
+              leading: const Icon(Icons.calendar_month_rounded, color: Colors.tealAccent),
+              title: const Text('Timetable', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminTimetableScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.meeting_room_rounded, color: Colors.amberAccent),
+              title: const Text('Lecture Halls', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HallsListScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.fact_check_rounded, color: Colors.greenAccent),
               title: const Text('Attendance', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
@@ -505,6 +529,30 @@ class AdminDashboard extends StatelessWidget {
                                                                   Navigator.push(
                                                                     context,
                                                                     MaterialPageRoute(builder: (context) => const EnrollmentsListScreen()),
+                                                                  );
+                                                                },
+                                                              ),
+                                                              _dashboardCard(
+                                                                icon: Icons.calendar_month_rounded,
+                                                                title: 'Timetable',
+                                                                value: 'Active Schedule',
+                                                                color: Colors.tealAccent,
+                                                                onTap: () {
+                                                                  Navigator.push(
+                                                                    context,
+                                                                    MaterialPageRoute(builder: (context) => const AdminTimetableScreen()),
+                                                                  );
+                                                                },
+                                                              ),
+                                                              _dashboardCard(
+                                                                icon: Icons.meeting_room_rounded,
+                                                                title: 'Lecture Halls',
+                                                                value: 'Campus Halls',
+                                                                color: Colors.amberAccent,
+                                                                onTap: () {
+                                                                  Navigator.push(
+                                                                    context,
+                                                                    MaterialPageRoute(builder: (context) => const HallsListScreen()),
                                                                   );
                                                                 },
                                                               ),

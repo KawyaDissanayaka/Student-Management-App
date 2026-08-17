@@ -4,43 +4,64 @@ class AnnouncementModel {
   final String? docId;
   final String announcementId;
   final String title;
-  final String description;
-  final String audience; // 'all_students' | 'all_lecturers' | 'all_users' | 'specific_student' | 'specific_lecturer'
+  final String description; // message/content
+  final String audience; // 'all_students' | 'all_lecturers' | 'all_users' | 'subject_students'
   final String? targetUserDocId;
   final String? targetUserName;
   final String? targetUserEmail;
   final String? targetUserId; // Student ID or Lecturer ID
   final String createdBy;
+  final String? updatedBy;
   final String publishDate; // YYYY-MM-DD
   final String expiryDate; // YYYY-MM-DD
   final String createdDate; // ISO string
-  final String? updatedAt; // ISO string when modified after publishing
-  final String status; // 'draft' | 'published' | 'expired' | 'deactivated'
+  final String? updatedAt; // ISO string when modified
+  final String status; // 'draft' | 'published' | 'archived' | 'expired' | 'deactivated'
+  final String priority; // 'Normal' | 'Important' | 'Urgent'
+  final String? subjectCode;
+  final String? subjectName;
+  final String? subjectDocId;
+  final String? lecturerId;
+  final String? lecturerName;
+  final String? attachmentUrl;
+  final List<String> readBy;
 
   AnnouncementModel({
     this.docId,
     required this.announcementId,
     required this.title,
     required this.description,
-    required this.audience,
+    this.audience = 'all_users',
     this.targetUserDocId,
     this.targetUserName,
     this.targetUserEmail,
     this.targetUserId,
     required this.createdBy,
+    this.updatedBy,
     required this.publishDate,
     required this.expiryDate,
     required this.createdDate,
     this.updatedAt,
     this.status = 'draft',
+    this.priority = 'Normal',
+    this.subjectCode,
+    this.subjectName,
+    this.subjectDocId,
+    this.lecturerId,
+    this.lecturerName,
+    this.attachmentUrl,
+    this.readBy = const [],
   });
 
+  /// Message alias
+  String get message => description;
+
   /// Computed dynamic status:
-  /// If status is 'draft' or 'deactivated', keep it.
+  /// If status is 'draft' or 'archived' or 'deactivated', keep it.
   /// If status is 'published', but today is after expiryDate (end of day), return 'expired'.
   String get effectiveStatus {
     final s = status.toLowerCase();
-    if (s == 'draft' || s == 'deactivated') {
+    if (s == 'draft' || s == 'archived' || s == 'deactivated') {
       return s;
     }
     if (expiryDate.isNotEmpty) {
@@ -66,11 +87,20 @@ class AnnouncementModel {
       'targetUserEmail': targetUserEmail,
       'targetUserId': targetUserId,
       'createdBy': createdBy,
+      'updatedBy': updatedBy,
       'publishDate': publishDate,
       'expiryDate': expiryDate,
       'createdDate': createdDate,
       'updatedAt': updatedAt,
       'status': status,
+      'priority': priority,
+      'subjectCode': subjectCode,
+      'subjectName': subjectName,
+      'subjectDocId': subjectDocId,
+      'lecturerId': lecturerId,
+      'lecturerName': lecturerName,
+      'attachmentUrl': attachmentUrl,
+      'readBy': readBy,
     };
   }
 
@@ -80,18 +110,27 @@ class AnnouncementModel {
       docId: doc.id,
       announcementId: data['announcementId'] ?? '',
       title: data['title'] ?? '',
-      description: data['description'] ?? '',
+      description: data['description'] ?? (data['message'] ?? ''),
       audience: data['audience'] ?? 'all_users',
       targetUserDocId: data['targetUserDocId'],
       targetUserName: data['targetUserName'],
       targetUserEmail: data['targetUserEmail'],
       targetUserId: data['targetUserId'],
       createdBy: data['createdBy'] ?? 'Admin',
+      updatedBy: data['updatedBy'],
       publishDate: data['publishDate'] ?? '',
       expiryDate: data['expiryDate'] ?? '',
       createdDate: data['createdDate'] ?? '',
       updatedAt: data['updatedAt'],
       status: data['status'] ?? 'draft',
+      priority: data['priority'] ?? 'Normal',
+      subjectCode: data['subjectCode'],
+      subjectName: data['subjectName'],
+      subjectDocId: data['subjectDocId'],
+      lecturerId: data['lecturerId'],
+      lecturerName: data['lecturerName'],
+      attachmentUrl: data['attachmentUrl'],
+      readBy: List<String>.from(data['readBy'] ?? []),
     );
   }
 
@@ -100,54 +139,27 @@ class AnnouncementModel {
       docId: id,
       announcementId: map['announcementId'] ?? '',
       title: map['title'] ?? '',
-      description: map['description'] ?? '',
+      description: map['description'] ?? (map['message'] ?? ''),
       audience: map['audience'] ?? 'all_users',
       targetUserDocId: map['targetUserDocId'],
       targetUserName: map['targetUserName'],
       targetUserEmail: map['targetUserEmail'],
       targetUserId: map['targetUserId'],
       createdBy: map['createdBy'] ?? 'Admin',
+      updatedBy: map['updatedBy'],
       publishDate: map['publishDate'] ?? '',
       expiryDate: map['expiryDate'] ?? '',
       createdDate: map['createdDate'] ?? '',
       updatedAt: map['updatedAt'],
       status: map['status'] ?? 'draft',
-    );
-  }
-
-  AnnouncementModel copyWith({
-    String? docId,
-    String? announcementId,
-    String? title,
-    String? description,
-    String? audience,
-    String? targetUserDocId,
-    String? targetUserName,
-    String? targetUserEmail,
-    String? targetUserId,
-    String? createdBy,
-    String? publishDate,
-    String? expiryDate,
-    String? createdDate,
-    String? updatedAt,
-    String? status,
-  }) {
-    return AnnouncementModel(
-      docId: docId ?? this.docId,
-      announcementId: announcementId ?? this.announcementId,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      audience: audience ?? this.audience,
-      targetUserDocId: targetUserDocId ?? this.targetUserDocId,
-      targetUserName: targetUserName ?? this.targetUserName,
-      targetUserEmail: targetUserEmail ?? this.targetUserEmail,
-      targetUserId: targetUserId ?? this.targetUserId,
-      createdBy: createdBy ?? this.createdBy,
-      publishDate: publishDate ?? this.publishDate,
-      expiryDate: expiryDate ?? this.expiryDate,
-      createdDate: createdDate ?? this.createdDate,
-      updatedAt: updatedAt ?? this.updatedAt,
-      status: status ?? this.status,
+      priority: map['priority'] ?? 'Normal',
+      subjectCode: map['subjectCode'],
+      subjectName: map['subjectName'],
+      subjectDocId: map['subjectDocId'],
+      lecturerId: map['lecturerId'],
+      lecturerName: map['lecturerName'],
+      attachmentUrl: map['attachmentUrl'],
+      readBy: List<String>.from(map['readBy'] ?? []),
     );
   }
 }

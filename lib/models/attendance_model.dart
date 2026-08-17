@@ -12,6 +12,10 @@ class AttendanceModel {
   final String markedBy;
   final String batch;
   final String semester;
+  final String? sessionTime;
+  final String? hallName;
+  final String? createdBy;
+  final String? updatedBy;
 
   AttendanceModel({
     this.docId,
@@ -25,6 +29,10 @@ class AttendanceModel {
     required this.markedBy,
     required this.batch,
     required this.semester,
+    this.sessionTime,
+    this.hallName,
+    this.createdBy,
+    this.updatedBy,
   });
 
   Map<String, dynamic> toMap() {
@@ -39,6 +47,10 @@ class AttendanceModel {
       'markedBy': markedBy,
       'batch': batch,
       'semester': semester,
+      'sessionTime': sessionTime,
+      'hallName': hallName,
+      'createdBy': createdBy,
+      'updatedBy': updatedBy,
     };
   }
 
@@ -56,22 +68,10 @@ class AttendanceModel {
       markedBy: data['markedBy'] ?? '',
       batch: data['batch'] ?? '',
       semester: data['semester'] ?? '',
-    );
-  }
-
-  factory AttendanceModel.fromMap(Map<String, dynamic> map, {String? id}) {
-    return AttendanceModel(
-      docId: id,
-      studentDocId: map['studentDocId'] ?? '',
-      studentId: map['studentId'] ?? '',
-      studentName: map['studentName'] ?? '',
-      subjectCode: map['subjectCode'] ?? '',
-      subjectName: map['subjectName'] ?? '',
-      date: map['date'] ?? '',
-      status: map['status'] ?? 'Present',
-      markedBy: map['markedBy'] ?? '',
-      batch: map['batch'] ?? '',
-      semester: map['semester'] ?? '',
+      sessionTime: data['sessionTime'],
+      hallName: data['hallName'],
+      createdBy: data['createdBy'],
+      updatedBy: data['updatedBy'],
     );
   }
 }

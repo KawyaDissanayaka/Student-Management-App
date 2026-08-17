@@ -5,7 +5,7 @@ class TaskModel {
   final String taskId;
   final String title;
   final String description;
-  final String assignedToType; // 'student' | 'lecturer'
+  final String assignedToType; // 'student' | 'lecturer' | 'subject_students'
   final String assignedToDocId;
   final String assignedToName;
   final String assignedToEmail;
@@ -16,27 +16,45 @@ class TaskModel {
   final String dueDate; // YYYY-MM-DD
   final String createdDate; // ISO string
   final String status; // 'pending' | 'in_progress' | 'completed' | 'overdue' | 'deactivated'
+  final String? subjectCode;
+  final String? subjectName;
+  final String? subjectDocId;
+  final String? lecturerId;
+  final String? lecturerName;
+  final List<String> assignedStudents; // list of student emails or ['ALL']
+  final String? attachmentUrl;
+  final String? completedAt;
+  final String? completedBy;
 
   TaskModel({
     this.docId,
     required this.taskId,
     required this.title,
     required this.description,
-    required this.assignedToType,
-    required this.assignedToDocId,
-    required this.assignedToName,
-    required this.assignedToEmail,
-    required this.assignedToId,
+    this.assignedToType = 'student',
+    this.assignedToDocId = '',
+    this.assignedToName = '',
+    this.assignedToEmail = '',
+    this.assignedToId = '',
     required this.assignedBy,
     required this.priority,
     required this.startDate,
     required this.dueDate,
     required this.createdDate,
     this.status = 'pending',
+    this.subjectCode,
+    this.subjectName,
+    this.subjectDocId,
+    this.lecturerId,
+    this.lecturerName,
+    this.assignedStudents = const ['ALL'],
+    this.attachmentUrl,
+    this.completedAt,
+    this.completedBy,
   });
 
   /// Computed dynamic status:
-  /// If status is 'completed' or 'deactivated', keep it.
+  /// If status is 'completed' or 'deactivated', keep it. (Completed tasks NEVER become overdue!)
   /// If incomplete ('pending' or 'in_progress') and today is after dueDate, return 'overdue'.
   String get effectiveStatus {
     final s = status.toLowerCase();
@@ -71,6 +89,15 @@ class TaskModel {
       'dueDate': dueDate,
       'createdDate': createdDate,
       'status': status,
+      'subjectCode': subjectCode,
+      'subjectName': subjectName,
+      'subjectDocId': subjectDocId,
+      'lecturerId': lecturerId,
+      'lecturerName': lecturerName,
+      'assignedStudents': assignedStudents,
+      'attachmentUrl': attachmentUrl,
+      'completedAt': completedAt,
+      'completedBy': completedBy,
     };
   }
 
@@ -92,6 +119,15 @@ class TaskModel {
       dueDate: data['dueDate'] ?? '',
       createdDate: data['createdDate'] ?? '',
       status: data['status'] ?? 'pending',
+      subjectCode: data['subjectCode'],
+      subjectName: data['subjectName'],
+      subjectDocId: data['subjectDocId'],
+      lecturerId: data['lecturerId'],
+      lecturerName: data['lecturerName'],
+      assignedStudents: List<String>.from(data['assignedStudents'] ?? ['ALL']),
+      attachmentUrl: data['attachmentUrl'],
+      completedAt: data['completedAt'],
+      completedBy: data['completedBy'],
     );
   }
 
@@ -112,42 +148,15 @@ class TaskModel {
       dueDate: map['dueDate'] ?? '',
       createdDate: map['createdDate'] ?? '',
       status: map['status'] ?? 'pending',
-    );
-  }
-
-  TaskModel copyWith({
-    String? docId,
-    String? taskId,
-    String? title,
-    String? description,
-    String? assignedToType,
-    String? assignedToDocId,
-    String? assignedToName,
-    String? assignedToEmail,
-    String? assignedToId,
-    String? assignedBy,
-    String? priority,
-    String? startDate,
-    String? dueDate,
-    String? createdDate,
-    String? status,
-  }) {
-    return TaskModel(
-      docId: docId ?? this.docId,
-      taskId: taskId ?? this.taskId,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      assignedToType: assignedToType ?? this.assignedToType,
-      assignedToDocId: assignedToDocId ?? this.assignedToDocId,
-      assignedToName: assignedToName ?? this.assignedToName,
-      assignedToEmail: assignedToEmail ?? this.assignedToEmail,
-      assignedToId: assignedToId ?? this.assignedToId,
-      assignedBy: assignedBy ?? this.assignedBy,
-      priority: priority ?? this.priority,
-      startDate: startDate ?? this.startDate,
-      dueDate: dueDate ?? this.dueDate,
-      createdDate: createdDate ?? this.createdDate,
-      status: status ?? this.status,
+      subjectCode: map['subjectCode'],
+      subjectName: map['subjectName'],
+      subjectDocId: map['subjectDocId'],
+      lecturerId: map['lecturerId'],
+      lecturerName: map['lecturerName'],
+      assignedStudents: List<String>.from(map['assignedStudents'] ?? ['ALL']),
+      attachmentUrl: map['attachmentUrl'],
+      completedAt: map['completedAt'],
+      completedBy: map['completedBy'],
     );
   }
 }
