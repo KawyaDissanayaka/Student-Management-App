@@ -6,6 +6,11 @@ import '../../services/enrollment_service.dart';
 import '../../models/enrollment_model.dart';
 import '../../services/attendance_service.dart';
 import '../../models/attendance_model.dart';
+import 'student_assignments_screen.dart';
+import '../user_tasks_screen.dart';
+import '../user_announcements_screen.dart';
+import '../user_notifications_screen.dart';
+import '../../services/notification_service.dart';
 
 class StudentHomeScreen extends StatelessWidget {
   final Map<String, dynamic>? userData;
@@ -36,6 +41,51 @@ class StudentHomeScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          StreamBuilder<int>(
+            stream: NotificationService().getUnreadCountStream(email, 'Student'),
+            builder: (context, notifSnap) {
+              final unreadCount = notifSnap.data ?? 0;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_rounded, color: Colors.purpleAccent),
+                    tooltip: 'Notifications',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserNotificationsScreen(
+                            userEmail: email,
+                            userName: name,
+                            userRole: 'Student',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          '$unreadCount',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
             tooltip: 'Sign Out',
@@ -179,7 +229,135 @@ class StudentHomeScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 16),
+
+                        // Action Buttons: Assignments, My Tasks, Announcements
+                        Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => StudentAssignmentsScreen(userData: userData),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E293B),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: Colors.orangeAccent.withAlpha(80)),
+                                  ),
+                                  child: const Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.assignment_rounded, color: Colors.orangeAccent, size: 20),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Assignments',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => UserTasksScreen(
+                                        userEmail: email,
+                                        userName: name,
+                                        userRole: 'Student',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E293B),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: Colors.cyanAccent.withAlpha(80)),
+                                  ),
+                                  child: const Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.task_alt_rounded, color: Colors.cyanAccent, size: 20),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'My Tasks',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => UserAnnouncementsScreen(
+                                        userEmail: email,
+                                        userName: name,
+                                        userRole: 'Student',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E293B),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: Colors.pinkAccent.withAlpha(80)),
+                                  ),
+                                  child: const Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.campaign_rounded, color: Colors.pinkAccent, size: 20),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Notices',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
 
                         // Enrolled Courses Title
                         const Text(

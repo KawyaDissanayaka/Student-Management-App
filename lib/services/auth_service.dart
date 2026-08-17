@@ -155,6 +155,53 @@ class AuthService {
     }
   }
 
+  // Update User Profile (Name, Photo)
+  Future<void> updateUserProfile({
+    required String fullName,
+    String? photoUrl,
+  }) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await user.updateDisplayName(fullName.trim());
+      if (photoUrl != null && photoUrl.isNotEmpty) {
+        await user.updatePhotoURL(photoUrl.trim());
+      }
+      
+      // Update in Firestore users collection
+      await _firestore.collection('users').doc(user.uid).set({
+        'fullName': fullName.trim(),
+        if (photoUrl != null) 'photoUrl': photoUrl.trim(),
+        'updatedAt': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+    }
+  }
+
+  // Change Password with current password verification
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) {
+      throw Exception('No authenticated user found. Please login again.');
+    }
+
+    try {
+      // 1. Re-authenticate user with current password
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(cred);
+
+      // 2. Update to new password
+      await user.updatePassword(newPassword);
+      debugPrint('Password successfully changed for user ${user.email}');
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // Sign Out
   Future<void> signOut() async {
     try {

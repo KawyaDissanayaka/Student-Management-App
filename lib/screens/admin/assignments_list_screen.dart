@@ -213,7 +213,7 @@ class _AssignmentsListScreenState extends State<AssignmentsListScreen> {
               onTap: () async {
                 Navigator.pop(ctx);
                 await _assignmentService.updateAssignmentStatus(assignment.docId!, s);
-                if (context.mounted) {
+                if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('"${assignment.title}" → ${s.toUpperCase()}'),

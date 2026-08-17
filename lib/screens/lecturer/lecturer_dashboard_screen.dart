@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../auth/login_screen.dart';
+import '../user_tasks_screen.dart';
+import '../user_announcements_screen.dart';
+import '../user_notifications_screen.dart';
+import '../../services/notification_service.dart';
 
 class LecturerDashboardScreen extends StatelessWidget {
   final Map<String, dynamic>? userData;
@@ -30,6 +34,51 @@ class LecturerDashboardScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          StreamBuilder<int>(
+            stream: NotificationService().getUnreadCountStream(email, 'Lecturer'),
+            builder: (context, notifSnap) {
+              final unreadCount = notifSnap.data ?? 0;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_rounded, color: Colors.purpleAccent),
+                    tooltip: 'Notifications',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserNotificationsScreen(
+                            userEmail: email,
+                            userName: name,
+                            userRole: 'Lecturer',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          '$unreadCount',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
             tooltip: 'Sign Out',
@@ -138,7 +187,95 @@ class LecturerDashboardScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 16),
+
+            // Action Buttons: My Tasks & Announcements
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserTasksScreen(
+                            userEmail: email,
+                            userName: name,
+                            userRole: 'Lecturer',
+                          ),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.cyanAccent.withAlpha(80)),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.task_alt_rounded, color: Colors.cyanAccent, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'My Tasks',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserAnnouncementsScreen(
+                            userEmail: email,
+                            userName: name,
+                            userRole: 'Lecturer',
+                          ),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.pinkAccent.withAlpha(80)),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.campaign_rounded, color: Colors.pinkAccent, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Announcements',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
 
             // Section Title
             const Text(
