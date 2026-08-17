@@ -10,6 +10,8 @@ import '../screens/admin/tasks_list_screen.dart';
 import '../screens/admin/announcements_list_screen.dart';
 import '../screens/admin/notifications_list_screen.dart';
 import '../screens/admin/reports_screen.dart';
+import '../screens/admin/admin_profile_screen.dart';
+import '../screens/admin/admin_settings_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
 
