@@ -637,7 +637,6 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('tasks')
-          .where('subjectCode', isEqualTo: widget.subjectCode)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -645,11 +644,17 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
         }
 
         final docs = snapshot.data?.docs ?? [];
-        final tasks = docs.map((d) => TaskModel.fromFirestore(d as DocumentSnapshot<Map<String, dynamic>>)).toList();
+        final tasks = docs
+            .map((d) => TaskModel.fromFirestore(d))
+            .where((t) =>
+                (t.moduleId.toUpperCase() == widget.subjectCode.toUpperCase() ||
+                    t.subjectCode?.toUpperCase() == widget.subjectCode.toUpperCase()) &&
+                !t.isDraft) // Students only see Published tasks
+            .toList();
 
         if (tasks.isEmpty) {
           return const Center(
-            child: Text('No coursework tasks logged for this module.', style: TextStyle(color: Colors.grey)),
+            child: Text('No active coursework tasks for this module.', style: TextStyle(color: Colors.grey)),
           );
         }
 
@@ -658,23 +663,113 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
           itemCount: tasks.length,
           itemBuilder: (context, index) {
             final t = tasks[index];
-            final isDone = t.effectiveStatus == 'completed';
+            final effectiveSt = t.effectiveStatus;
+            final isDone = effectiveSt == 'completed';
+            final isOverdue = effectiveSt == 'overdue';
+            final isInProgress = effectiveSt == 'in_progress';
+
+            Color statusColor = Colors.amberAccent;
+            if (isDone) {
+              statusColor = Colors.greenAccent;
+            } else if (isOverdue) {
+              statusColor = Colors.redAccent;
+            } else if (isInProgress) {
+              statusColor = Colors.cyanAccent;
+            }
+
             return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(10)),
-              child: Row(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: statusColor.withAlpha(50)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: isDone ? Colors.greenAccent : Colors.grey, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(t.title, style: TextStyle(color: isDone ? Colors.white54 : Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                        Text('Due: ${t.dueDate}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                      ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: Colors.purple.withAlpha(30), borderRadius: BorderRadius.circular(4)),
+                            child: Text(t.priority.toUpperCase(), style: const TextStyle(color: Colors.purpleAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: statusColor.withAlpha(30), borderRadius: BorderRadius.circular(4)),
+                            child: Text(
+                              effectiveSt.replaceAll('_', ' ').toUpperCase(),
+                              style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text('Due: ${t.dueDate}', style: TextStyle(color: isOverdue ? Colors.redAccent : Colors.grey, fontSize: 11, fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  Text(
+                    t.title,
+                    style: TextStyle(
+                      color: isDone ? Colors.white54 : Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      decoration: isDone ? TextDecoration.lineThrough : null,
                     ),
+                  ),
+                  if (t.description.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(t.description, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  ],
+                  const SizedBox(height: 10),
+                  const Divider(color: Colors.white10, height: 1),
+                  const SizedBox(height: 6),
+
+                  // Student Status Action Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('My Status:', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                      Row(
+                        children: [
+                          // In Progress Toggle
+                          if (!isDone)
+                            TextButton.icon(
+                              onPressed: () async {
+                                if (t.docId != null) {
+                                  await FirebaseFirestore.instance.collection('tasks').doc(t.docId).update({
+                                    'status': isInProgress ? 'pending' : 'in_progress',
+                                  });
+                                }
+                              },
+                              icon: Icon(isInProgress ? Icons.pause_circle_outline_rounded : Icons.play_circle_outline_rounded, size: 14, color: Colors.cyanAccent),
+                              label: Text(isInProgress ? 'Pause' : 'Start Task', style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+                            ),
+
+                          // Complete Toggle
+                          TextButton.icon(
+                            onPressed: () async {
+                              if (t.docId != null) {
+                                final newSt = isDone ? 'pending' : 'completed';
+                                await FirebaseFirestore.instance.collection('tasks').doc(t.docId).update({
+                                  'status': newSt,
+                                  'completedAt': isDone ? null : DateTime.now().toIso8601String(),
+                                  'completedBy': isDone ? null : widget.studentName,
+                                });
+                              }
+                            },
+                            icon: Icon(isDone ? Icons.replay_rounded : Icons.check_circle_rounded, size: 14, color: isDone ? Colors.grey : Colors.greenAccent),
+                            label: Text(isDone ? 'Reopen' : 'Mark Done', style: TextStyle(color: isDone ? Colors.grey : Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),

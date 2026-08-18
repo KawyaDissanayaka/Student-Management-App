@@ -1853,5 +1853,81 @@ void main() {
       expect(gradedSub.marks, 92.5);
       expect(gradedSub.feedback, 'Excellent design diagrams and well-written explanation.');
     });
+
+    test('Task Management Priorities, Overdue Calculation & Student Visibility Rules', () {
+      // 1. Task Model Attributes & Priority Mapping
+      final task1 = TaskModel(
+        taskId: 'TSK-101',
+        title: 'Review Chapter 3 Normalization',
+        description: 'Read slides and prepare 3NF questions.',
+        instructions: 'Submit a 1-page summary note.',
+        moduleId: 'CS101',
+        assignedBy: 'Dr. Lee',
+        priority: 'High',
+        startDate: '2026-08-01',
+        dueDate: '2026-08-10', // Past date
+        createdDate: '2026-08-01T09:00:00',
+        status: 'pending',
+      );
+
+      final task2 = TaskModel(
+        taskId: 'TSK-102',
+        title: 'Setup PostgreSQL Database Docker Container',
+        description: 'Run docker compose for Postgres.',
+        moduleId: 'CS101',
+        assignedBy: 'Dr. Lee',
+        priority: 'Medium',
+        startDate: '2026-08-01',
+        dueDate: '2026-08-10', // Past date, but completed
+        createdDate: '2026-08-01T09:00:00',
+        status: 'completed',
+        completedAt: '2026-08-08T18:00:00',
+        completedBy: 'Alice',
+      );
+
+      final task3 = TaskModel(
+        taskId: 'TSK-103',
+        title: 'Draft Project Proposal',
+        description: 'Internal draft not yet released to students.',
+        moduleId: 'CS101',
+        assignedBy: 'Dr. Lee',
+        priority: 'Low',
+        startDate: '2026-08-18',
+        dueDate: '2026-08-30',
+        createdDate: '2026-08-18T09:00:00',
+        status: 'Draft',
+      );
+
+      // 2. Overdue vs Completed Rules
+      expect(task1.effectiveStatus, 'overdue');
+      expect(task1.isOverdue, true);
+      expect(task1.isCompleted, false);
+
+      expect(task2.effectiveStatus, 'completed'); // Completed NEVER becomes overdue!
+      expect(task2.isCompleted, true);
+      expect(task2.isOverdue, false);
+
+      // 3. Student Visibility Rule (Only Published / Non-Draft tasks)
+      final allTasks = [task1, task2, task3];
+      final studentVisibleTasks = allTasks.where((t) => !t.isDraft).toList();
+      expect(studentVisibleTasks.length, 2);
+      expect(studentVisibleTasks.map((t) => t.taskId).toSet(), {'TSK-101', 'TSK-102'});
+
+      // 4. Status Lifecycle Transition (Pending -> In Progress -> Completed)
+      final startedTask = TaskModel(
+        taskId: task1.taskId,
+        title: task1.title,
+        description: task1.description,
+        moduleId: task1.moduleId,
+        assignedBy: task1.assignedBy,
+        priority: task1.priority,
+        startDate: task1.startDate,
+        dueDate: '2026-08-30', // Future date
+        createdDate: task1.createdDate,
+        status: 'in_progress',
+      );
+
+      expect(startedTask.effectiveStatus, 'in_progress');
+    });
   });
 }
