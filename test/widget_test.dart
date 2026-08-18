@@ -21,6 +21,7 @@ import 'package:student_management_app/models/exam_result_model.dart';
 import 'package:student_management_app/models/fee_structure_model.dart';
 import 'package:student_management_app/models/module_registration_period_model.dart';
 import 'package:student_management_app/models/student_module_registration_model.dart';
+import 'package:student_management_app/models/notification_model.dart';
 import 'package:student_management_app/services/exam_hall_service.dart';
 import 'package:student_management_app/services/exam_seating_service.dart';
 import 'package:student_management_app/services/exam_reports_service.dart';
@@ -2089,6 +2090,72 @@ void main() {
       // 4. Read/Unread Tracking
       expect(annProgramme.isReadBy('alice@uni.lk'), true);
       expect(annProgramme.isReadBy('bob@uni.lk'), false);
+    });
+
+    test('Unified Notification Center Types, Expiry & Priority Rules', () {
+      // 1. Supported Notification Types Verification
+      expect(NotificationModel.supportedTypes.contains('Assignment'), true);
+      expect(NotificationModel.supportedTypes.contains('Task'), true);
+      expect(NotificationModel.supportedTypes.contains('Attendance'), true);
+      expect(NotificationModel.supportedTypes.contains('Timetable'), true);
+      expect(NotificationModel.supportedTypes.contains('Examination'), true);
+      expect(NotificationModel.supportedTypes.contains('Result'), true);
+      expect(NotificationModel.supportedTypes.contains('Payment'), true);
+      expect(NotificationModel.supportedTypes.contains('Announcement'), true);
+      expect(NotificationModel.supportedTypes.contains('System'), true);
+
+      // 2. Notification Model Serialization & Priority
+      final notif = NotificationModel(
+        notificationId: 'NTF-2026-001',
+        recipientId: 'alice@uni.lk',
+        title: 'Assignment Graded: Milestone 1',
+        message: 'Your submission for CS101 has been evaluated.',
+        type: 'Assignment',
+        priority: 'Important',
+        relatedId: 'ASG-101',
+        relatedModuleId: 'CS101',
+        isRead: false,
+        createdAt: '2026-08-18T10:00:00',
+        expiresAt: '2026-08-30', // Future
+      );
+
+      final expiredNotif = NotificationModel(
+        notificationId: 'NTF-2026-002',
+        recipientId: 'alice@uni.lk',
+        title: 'Shuttle Reminder',
+        message: 'Bus departure in 10 minutes.',
+        type: 'System',
+        priority: 'Normal',
+        isRead: true,
+        createdAt: '2026-08-01T08:00:00',
+        expiresAt: '2026-08-01', // Past date
+      );
+
+      // 3. Expiry Rules
+      expect(notif.isExpired, false);
+      expect(expiredNotif.isExpired, true);
+
+      // 4. Read/Unread State Tracking
+      expect(notif.isReadByUser('alice@uni.lk'), false);
+      expect(expiredNotif.isReadByUser('alice@uni.lk'), true);
+
+      final readNotif = NotificationModel(
+        notificationId: notif.notificationId,
+        recipientId: notif.recipientId,
+        title: notif.title,
+        message: notif.message,
+        type: notif.type,
+        priority: notif.priority,
+        relatedId: notif.relatedId,
+        relatedModuleId: notif.relatedModuleId,
+        isRead: true,
+        createdAt: notif.createdAt,
+        expiresAt: notif.expiresAt,
+      );
+
+      expect(readNotif.isReadByUser('alice@uni.lk'), true);
+      expect(readNotif.relatedId, 'ASG-101');
+      expect(readNotif.relatedModuleId, 'CS101');
     });
   });
 }

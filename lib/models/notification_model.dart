@@ -79,6 +79,21 @@ class NotificationModel {
     }
   }
 
+  /// Dynamically computes effective status:
+  /// If status is 'scheduled', check if scheduledDate has arrived or passed. If so, return 'sent'.
+  String get effectiveStatus {
+    final s = status.toLowerCase();
+    if (s == 'scheduled' && scheduledDate != null && scheduledDate!.isNotEmpty) {
+      try {
+        final parsed = DateTime.parse(scheduledDate!);
+        if (DateTime.now().isAfter(parsed)) {
+          return 'sent';
+        }
+      } catch (_) {}
+    }
+    return s;
+  }
+
   /// Checks if a user (by email or ID) has read this notification
   bool isReadByUser(String userIdentifier) {
     if (isRead) return true;

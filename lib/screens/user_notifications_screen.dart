@@ -5,7 +5,7 @@ import '../services/notification_service.dart';
 class UserNotificationsScreen extends StatefulWidget {
   final String userEmail;
   final String userName;
-  final String userRole; // 'Student' | 'Lecturer'
+  final String userRole; // 'Student' | 'Lecturer' | 'Admin'
 
   const UserNotificationsScreen({
     super.key,
@@ -24,29 +24,41 @@ class _UserNotificationsScreenState extends State<UserNotificationsScreen> with 
 
   final Map<String, String> _typeLabels = {
     'general': 'General',
+    'system': 'System',
     'assignment': 'Assignment',
     'task': 'Task',
     'attendance': 'Attendance',
+    'timetable': 'Timetable',
+    'examination': 'Examination',
+    'result': 'Result',
+    'payment': 'Payment',
     'announcement': 'Announcement',
-    'system': 'System',
   };
 
   final Map<String, IconData> _typeIcons = {
     'general': Icons.notifications_rounded,
+    'system': Icons.settings_suggest_rounded,
     'assignment': Icons.assignment_rounded,
     'task': Icons.task_alt_rounded,
     'attendance': Icons.calendar_month_rounded,
+    'timetable': Icons.schedule_rounded,
+    'examination': Icons.quiz_rounded,
+    'result': Icons.grade_rounded,
+    'payment': Icons.account_balance_wallet_rounded,
     'announcement': Icons.campaign_rounded,
-    'system': Icons.settings_suggest_rounded,
   };
 
   final Map<String, Color> _typeColors = {
     'general': Colors.purpleAccent,
+    'system': Colors.blueGrey,
     'assignment': Colors.orangeAccent,
     'task': Colors.cyanAccent,
-    'attendance': Colors.tealAccent,
+    'attendance': Colors.greenAccent,
+    'timetable': Colors.tealAccent,
+    'examination': Colors.purpleAccent,
+    'result': Colors.amberAccent,
+    'payment': Colors.tealAccent,
     'announcement': Colors.pinkAccent,
-    'system': Colors.amberAccent,
   };
 
   @override
@@ -80,7 +92,15 @@ class _UserNotificationsScreenState extends State<UserNotificationsScreen> with 
       _notificationService.markAsRead(n.docId!, widget.userEmail);
     }
 
-    final typeColor = _typeColors[n.type] ?? Colors.purpleAccent;
+    final cleanType = n.type.toLowerCase();
+    final typeColor = _typeColors[cleanType] ?? Colors.purpleAccent;
+
+    Color priorityColor = Colors.blueAccent;
+    if (n.priority.toLowerCase() == 'urgent') {
+      priorityColor = Colors.redAccent;
+    } else if (n.priority.toLowerCase() == 'important') {
+      priorityColor = Colors.orangeAccent;
+    }
 
     showModalBottomSheet(
       context: context,
@@ -109,20 +129,28 @@ class _UserNotificationsScreenState extends State<UserNotificationsScreen> with 
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: typeColor.withAlpha(30),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: typeColor.withAlpha(120)),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: typeColor.withAlpha(80)),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(_typeIcons[n.type] ?? Icons.notifications_rounded, size: 14, color: typeColor),
+                      Icon(_typeIcons[cleanType] ?? Icons.notifications_rounded, size: 14, color: typeColor),
                       const SizedBox(width: 6),
                       Text(
-                        _typeLabels[n.type] ?? n.type,
+                        _typeLabels[cleanType] ?? n.type,
                         style: TextStyle(color: typeColor, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: priorityColor.withAlpha(30),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(n.priority.toUpperCase(), style: TextStyle(color: priorityColor, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
                 const Spacer(),
                 Text(
@@ -141,6 +169,14 @@ class _UserNotificationsScreenState extends State<UserNotificationsScreen> with 
               n.message,
               style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
             ),
+            if (n.relatedModuleId != null && n.relatedModuleId!.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text('Module Reference: ${n.relatedModuleId}', style: const TextStyle(color: Colors.tealAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+            if (n.relatedId != null && n.relatedId!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text('Reference ID: ${n.relatedId}', style: const TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'monospace')),
+            ],
             const SizedBox(height: 20),
             const Divider(color: Colors.white10),
             const SizedBox(height: 8),
@@ -172,8 +208,8 @@ class _UserNotificationsScreenState extends State<UserNotificationsScreen> with 
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Notifications',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          'Notifications Center',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
         ),
         actions: [
           IconButton(
@@ -254,7 +290,8 @@ class _UserNotificationsScreenState extends State<UserNotificationsScreen> with 
       itemBuilder: (context, index) {
         final item = list[index];
         final isRead = item.isReadByUser(widget.userEmail);
-        final typeColor = _typeColors[item.type] ?? Colors.purpleAccent;
+        final cleanType = item.type.toLowerCase();
+        final typeColor = _typeColors[cleanType] ?? Colors.purpleAccent;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -278,7 +315,7 @@ class _UserNotificationsScreenState extends State<UserNotificationsScreen> with 
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: typeColor.withAlpha(30),
-                    child: Icon(_typeIcons[item.type] ?? Icons.notifications_rounded, color: typeColor, size: 20),
+                    child: Icon(_typeIcons[cleanType] ?? Icons.notifications_rounded, color: typeColor, size: 20),
                   ),
                   const SizedBox(width: 14),
 
@@ -290,7 +327,7 @@ class _UserNotificationsScreenState extends State<UserNotificationsScreen> with 
                         Row(
                           children: [
                             Text(
-                              _typeLabels[item.type] ?? item.type,
+                              _typeLabels[cleanType] ?? item.type,
                               style: TextStyle(color: typeColor, fontSize: 11, fontWeight: FontWeight.bold),
                             ),
                             const Spacer(),
