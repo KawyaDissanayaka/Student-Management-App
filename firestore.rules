@@ -11,34 +11,34 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    function getRole() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-          ? getUserDoc().role.toUpperCase()
-          : '';
+    function hasRole(roleName) {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             (getUserDoc().role == roleName || getUserDoc().role == roleName.lower() || getUserDoc().role == roleName.upper());
     }
 
     function isAdmin() {
       return isAuthenticated() && (
-        getRole() == 'ADMIN' ||
+        hasRole('ADMIN') ||
         request.auth.token.email.matches('admin.*') ||
         request.auth.token.email == 'admin@system.com'
       );
     }
 
     function isLecturer() {
-      return isAuthenticated() && (getRole() == 'LECTURER' || isAdmin());
+      return isAuthenticated() && (hasRole('LECTURER') || isAdmin());
     }
 
     function isStudent() {
-      return isAuthenticated() && (getRole() == 'STUDENT' || isAdmin());
+      return isAuthenticated() && (hasRole('STUDENT') || isAdmin());
     }
 
     function isFinanceStaff() {
-      return isAuthenticated() && (getRole() == 'FINANCESTAFF' || getRole() == 'FINANCE_STAFF' || isAdmin());
+      return isAuthenticated() && (hasRole('FINANCESTAFF') || hasRole('FINANCE_STAFF') || isAdmin());
     }
 
     function isLibraryStaff() {
-      return isAuthenticated() && (getRole() == 'LIBRARYSTAFF' || getRole() == 'LIBRARY_STAFF' || isAdmin());
+      return isAuthenticated() && (hasRole('LIBRARYSTAFF') || hasRole('LIBRARY_STAFF') || isAdmin());
     }
 
     function isUserEmail(email) {
