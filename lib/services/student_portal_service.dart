@@ -37,10 +37,12 @@ class StudentPortalService {
 
   // ─── MATERIALS ────────────────────────────────────────────────────────────
   Stream<List<MaterialModel>> getMaterialsForSubject(String subjectCode) {
-    return _materialsRef.where('subjectCode', isEqualTo: subjectCode).snapshots().map((snap) {
+    return _materialsRef.snapshots().map((snap) {
       final list = snap.docs
           .map((d) => MaterialModel.fromFirestore(d))
-          .where((m) => m.status.toLowerCase() == 'active')
+          .where((m) =>
+              (m.moduleId.toUpperCase() == subjectCode.toUpperCase() || m.subjectCode.toUpperCase() == subjectCode.toUpperCase()) &&
+              m.isPublished)
           .toList();
       list.sort((a, b) => a.weekNumber.compareTo(b.weekNumber));
       return list;

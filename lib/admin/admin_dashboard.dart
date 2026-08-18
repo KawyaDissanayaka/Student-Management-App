@@ -20,6 +20,7 @@ import '../screens/admin/admin_exam_registrations_screen.dart';
 import '../screens/admin/admin_exam_reports_screen.dart';
 import '../screens/admin/admin_fee_structures_screen.dart';
 import '../screens/admin/admin_module_registration_screen.dart';
+import '../screens/admin/admin_module_registrations_screen.dart';
 import '../screens/admin/halls_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
@@ -153,6 +154,17 @@ class AdminDashboard extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AdminModuleRegistrationScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.fact_check_rounded, color: Colors.greenAccent),
+              title: const Text('Module Approvals & Records', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminModuleRegistrationsScreen()),
                 );
               },
             ),

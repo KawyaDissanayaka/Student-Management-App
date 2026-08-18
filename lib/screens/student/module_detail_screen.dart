@@ -7,6 +7,9 @@ import '../../models/material_model.dart';
 import '../../models/assignment_model.dart';
 import '../../models/attendance_model.dart';
 import '../../models/announcement_model.dart';
+import '../../models/timetable_model.dart';
+import '../../models/exam_result_model.dart';
+import '../../models/task_model.dart';
 
 class ModuleDetailScreen extends StatefulWidget {
   final String subjectCode;
@@ -17,6 +20,7 @@ class ModuleDetailScreen extends StatefulWidget {
   final String description;
   final String studentEmail;
   final String studentName;
+  final String studentId;
 
   const ModuleDetailScreen({
     super.key,
@@ -25,9 +29,10 @@ class ModuleDetailScreen extends StatefulWidget {
     required this.lecturerName,
     required this.semester,
     this.credits = 3,
-    this.description = 'Comprehensive module focusing on theory and practical implementation.',
+    this.description = 'Comprehensive academic module focusing on theoretical principles, analytical methods, and hands-on laboratory coursework.',
     required this.studentEmail,
     required this.studentName,
+    this.studentId = 'STU-1002',
   });
 
   @override
@@ -43,7 +48,7 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
   }
 
   @override
@@ -67,7 +72,7 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.subjectCode, style: const TextStyle(color: Colors.tealAccent, fontSize: 13, fontWeight: FontWeight.bold)),
-            Text(widget.subjectName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+            Text(widget.subjectName, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
           ],
         ),
         bottom: TabBar(
@@ -76,12 +81,16 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
           indicatorColor: Colors.tealAccent,
           labelColor: Colors.tealAccent,
           unselectedLabelColor: Colors.grey,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
           tabs: const [
-            Tab(text: 'Overview', icon: Icon(Icons.info_outline, size: 16)),
-            Tab(text: 'Materials', icon: Icon(Icons.description_outlined, size: 16)),
-            Tab(text: 'Assignments', icon: Icon(Icons.assignment_outlined, size: 16)),
-            Tab(text: 'Attendance', icon: Icon(Icons.calendar_month_outlined, size: 16)),
-            Tab(text: 'Notices', icon: Icon(Icons.campaign_outlined, size: 16)),
+            Tab(text: 'Overview', icon: Icon(Icons.info_outline_rounded, size: 15)),
+            Tab(text: 'Lectures', icon: Icon(Icons.calendar_month_rounded, size: 15)),
+            Tab(text: 'Materials', icon: Icon(Icons.description_rounded, size: 15)),
+            Tab(text: 'Assignments', icon: Icon(Icons.assignment_rounded, size: 15)),
+            Tab(text: 'Tasks', icon: Icon(Icons.task_alt_rounded, size: 15)),
+            Tab(text: 'Attendance', icon: Icon(Icons.how_to_reg_rounded, size: 15)),
+            Tab(text: 'Results', icon: Icon(Icons.grade_rounded, size: 15)),
+            Tab(text: 'Notices', icon: Icon(Icons.campaign_rounded, size: 15)),
           ],
         ),
       ),
@@ -89,9 +98,12 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
         controller: _tabController,
         children: [
           _buildOverviewTab(),
+          _buildLecturesTab(),
           _buildMaterialsTab(),
           _buildAssignmentsTab(),
+          _buildTasksTab(),
           _buildAttendanceTab(),
+          _buildResultsTab(),
           _buildNoticesTab(),
         ],
       ),
@@ -101,10 +113,10 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
   // ─── 1. OVERVIEW TAB ───────────────────────────────────────────────────────
   Widget _buildOverviewTab() {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       children: [
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: const Color(0xFF1E293B),
             borderRadius: BorderRadius.circular(16),
@@ -125,29 +137,31 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.subjectName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text('${widget.subjectCode} • ${widget.credits} Academic Credits', style: const TextStyle(color: Colors.tealAccent, fontSize: 13)),
+                        Text(widget.subjectName, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                        Text('${widget.subjectCode} • ${widget.credits} Academic Credits', style: const TextStyle(color: Colors.tealAccent, fontSize: 12)),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               const Divider(color: Colors.white10),
-              const SizedBox(height: 12),
-              const Text('Module Description', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 10),
+              const Text('Module Description & Syllabus Scope', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 6),
               Text(
                 widget.description.isNotEmpty ? widget.description : 'Core module covering theoretical fundamentals and practical laboratory coursework.',
-                style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+                style: const TextStyle(color: Colors.grey, fontSize: 12, height: 1.4),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               const Divider(color: Colors.white10),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               _buildOverviewMetaRow('Assigned Lecturer', widget.lecturerName.isNotEmpty ? widget.lecturerName : 'Faculty Staff'),
+              _buildOverviewMetaRow('Academic Department', 'Department of Computing & Information Systems'),
               _buildOverviewMetaRow('Academic Semester', widget.semester),
-              _buildOverviewMetaRow('Grading Weightage', 'Continuous Assessment (40%) + Final Exam (60%)'),
-              _buildOverviewMetaRow('Minimum Attendance Required', '80% (University Standard)'),
+              _buildOverviewMetaRow('Academic Year', '2025/2026'),
+              _buildOverviewMetaRow('Assessment Scheme', 'Continuous Assessment (40%) + Final Examination (60%)'),
+              _buildOverviewMetaRow('Attendance Policy', 'Minimum 80% attendance required for examination eligibility'),
             ],
           ),
         ),
@@ -161,14 +175,95 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 11),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // ─── 2. MATERIALS TAB ──────────────────────────────────────────────────────
+  // ─── 2. LECTURES / TIMETABLE TAB ───────────────────────────────────────────
+  Widget _buildLecturesTab() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('timetables')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: Colors.tealAccent));
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+        final lectures = docs
+            .map((d) => TimetableModel.fromFirestore(d as DocumentSnapshot<Map<String, dynamic>>))
+            .where((t) => t.subjectCode.toUpperCase() == widget.subjectCode.toUpperCase())
+            .toList();
+
+        if (lectures.isEmpty) {
+          return const Center(
+            child: Text('No scheduled lecture sessions found for this module.', style: TextStyle(color: Colors.grey)),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(14),
+          itemCount: lectures.length,
+          itemBuilder: (context, index) {
+            final t = lectures[index];
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(color: Colors.teal.withAlpha(30), borderRadius: BorderRadius.circular(8)),
+                    child: Column(
+                      children: [
+                        Text(t.dayOfWeek.toUpperCase(), style: const TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold, fontSize: 11)),
+                        Text(t.startTime, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${t.subjectCode} - ${t.subjectName}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                        const SizedBox(height: 3),
+                        Text('Hall: ${t.hall} • Time: ${t.startTime} - ${t.endTime}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                        Text('Lecturer: ${t.lecturerName}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.green.withAlpha(30), borderRadius: BorderRadius.circular(4)),
+                    child: const Text('ACTIVE', style: TextStyle(color: Colors.greenAccent, fontSize: 9, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ─── 3. MATERIALS TAB ──────────────────────────────────────────────────────
   Widget _buildMaterialsTab() {
     return StreamBuilder<List<MaterialModel>>(
       stream: _portalService.getMaterialsForSubject(widget.subjectCode),
@@ -195,7 +290,7 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           itemCount: materials.length,
           itemBuilder: (context, index) {
             final m = materials[index];
@@ -226,9 +321,9 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(m.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text(m.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                         const SizedBox(height: 3),
-                        Text('Week ${m.weekNumber} • ${m.fileType} • ${m.fileSize}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text('Week ${m.weekNumber} • ${m.fileType} • ${m.fileSize}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
                       ],
                     ),
                   ),
@@ -250,7 +345,7 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
     );
   }
 
-  // ─── 3. ASSIGNMENTS TAB ────────────────────────────────────────────────────
+  // ─── 4. ASSIGNMENTS TAB ────────────────────────────────────────────────────
   Widget _buildAssignmentsTab() {
     return StreamBuilder<List<AssignmentModel>>(
       stream: _assignmentService.getPublishedAssignmentsForSubjects([widget.subjectCode]),
@@ -268,16 +363,16 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           itemCount: assignments.length,
           itemBuilder: (context, index) {
             final a = assignments[index];
             return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white10),
               ),
               child: Column(
@@ -288,40 +383,28 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withAlpha(30),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          a.assignmentId,
-                          style: const TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.bold),
-                        ),
+                        decoration: BoxDecoration(color: Colors.orange.withAlpha(30), borderRadius: BorderRadius.circular(6)),
+                        child: Text(a.assignmentId, style: const TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                       ),
-                      Text('Due: ${a.dueDate}', style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text('Due: ${a.dueDate}', style: const TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(a.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text(a.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                   const SizedBox(height: 4),
-                  Text(a.description, style: const TextStyle(color: Colors.grey, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 12),
+                  Text(a.description, style: const TextStyle(color: Colors.grey, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 10),
                   const Divider(color: Colors.white10, height: 1),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Semester: ${a.semester}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text('Semester: ${a.semester}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
                       ElevatedButton.icon(
-                        onPressed: () {
-                          _showSubmitModal(context, a);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        icon: const Icon(Icons.upload_file_rounded, size: 14, color: Colors.white),
-                        label: const Text('Submit Work', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        onPressed: () => _showSubmitModal(context, a),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
+                        icon: const Icon(Icons.upload_file_rounded, size: 12, color: Colors.white),
+                        label: const Text('Submit Work', style: TextStyle(color: Colors.white, fontSize: 11)),
                       ),
                     ],
                   ),
@@ -358,50 +441,50 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Submit ${assignment.assignmentId}', style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                  Text('Submit ${assignment.assignmentId}', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                   IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () => Navigator.pop(ctx)),
                 ],
               ),
               const SizedBox(height: 12),
-              Text(assignment.title, style: const TextStyle(color: Colors.tealAccent, fontSize: 14, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 16),
+              Text(assignment.title, style: const TextStyle(color: Colors.tealAccent, fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 14),
 
-              // File upload simulator box
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0F172A),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.tealAccent.withAlpha(100), style: BorderStyle.solid),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.tealAccent.withAlpha(100)),
                 ),
-                child: Column(
+                child: const Column(
                   children: [
-                    const Icon(Icons.cloud_upload_outlined, size: 36, color: Colors.tealAccent),
-                    const SizedBox(height: 8),
-                    const Text('Assignment_Final_Report.pdf', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                    const SizedBox(height: 2),
-                    const Text('PDF Document • 2.8 MB (Ready to upload)', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                    Icon(Icons.cloud_upload_outlined, size: 32, color: Colors.tealAccent),
+                    SizedBox(height: 6),
+                    Text('Assignment_Report_Final.pdf', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    SizedBox(height: 2),
+                    Text('PDF Document • 2.8 MB (Ready to upload)', style: TextStyle(color: Colors.grey, fontSize: 10)),
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
               TextField(
                 controller: noteController,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
                 decoration: InputDecoration(
                   labelText: 'Submission Note (Optional)',
-                  labelStyle: const TextStyle(color: Colors.grey),
+                  labelStyle: const TextStyle(color: Colors.grey, fontSize: 11),
                   filled: true,
                   fillColor: const Color(0xFF0F172A),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               SizedBox(
                 width: double.infinity,
+                height: 44,
                 child: ElevatedButton.icon(
                   onPressed: isUploading
                       ? null
@@ -419,7 +502,7 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
                               'studentEmail': widget.studentEmail.trim().toLowerCase(),
                               'studentName': widget.studentName,
                               'submittedAt': DateTime.now().toIso8601String(),
-                              'fileName': 'Assignment_Final_Report.pdf',
+                              'fileName': 'Assignment_Report_Final.pdf',
                               'fileSize': '2.8 MB',
                               'notes': noteController.text.trim(),
                               'status': 'submitted',
@@ -436,15 +519,11 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
                             );
                           }
                         },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                   icon: isUploading
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.send_rounded, color: Colors.white),
-                  label: const Text('Confirm & Submit Assignment', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.send_rounded, color: Colors.white, size: 14),
+                  label: const Text('Confirm & Submit Assignment', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
               ),
             ],
@@ -454,28 +533,77 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
     );
   }
 
-  // ─── 4. ATTENDANCE TAB ─────────────────────────────────────────────────────
+  // ─── 5. TASKS TAB ──────────────────────────────────────────────────────────
+  Widget _buildTasksTab() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('tasks')
+          .where('subjectCode', isEqualTo: widget.subjectCode)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: Colors.tealAccent));
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+        final tasks = docs.map((d) => TaskModel.fromFirestore(d as DocumentSnapshot<Map<String, dynamic>>)).toList();
+
+        if (tasks.isEmpty) {
+          return const Center(
+            child: Text('No coursework tasks logged for this module.', style: TextStyle(color: Colors.grey)),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(14),
+          itemCount: tasks.length,
+          itemBuilder: (context, index) {
+            final t = tasks[index];
+            final isDone = t.effectiveStatus == 'completed';
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                children: [
+                  Icon(isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: isDone ? Colors.greenAccent : Colors.grey, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(t.title, style: TextStyle(color: isDone ? Colors.white54 : Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                        Text('Due: ${t.dueDate}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ─── 6. ATTENDANCE TAB ─────────────────────────────────────────────────────
   Widget _buildAttendanceTab() {
     return StreamBuilder<List<AttendanceModel>>(
       stream: _attendanceService.getStudentAttendanceStream(widget.studentEmail),
       builder: (context, snapshot) {
-        final records = (snapshot.data ?? []).where((r) => r.subjectCode == widget.subjectCode && r.status != 'cancelled').toList();
+        final records = (snapshot.data ?? []).where((r) => r.subjectCode.toUpperCase() == widget.subjectCode.toUpperCase() && r.status != 'cancelled').toList();
 
         final totalClasses = records.length;
         final presentCount = records.where((r) => r.status == 'present' || r.status == 'late').length;
-        final pct = totalClasses > 0 ? (presentCount / totalClasses) * 100 : 0.0;
+        final absentCount = records.where((r) => r.status == 'absent').length;
+        final pct = totalClasses > 0 ? (presentCount / totalClasses) * 100 : 100.0;
 
         return ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           children: [
-            // Attendance Summary Banner
             Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white10),
-              ),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white10)),
               child: Row(
                 children: [
                   CircleAvatar(
@@ -483,65 +611,48 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
                     backgroundColor: pct >= 80 ? Colors.green.withAlpha(30) : Colors.red.withAlpha(30),
                     child: Text(
                       '${pct.toStringAsFixed(0)}%',
-                      style: TextStyle(
-                        color: pct >= 80 ? Colors.greenAccent : Colors.redAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: pct >= 80 ? Colors.greenAccent : Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Your Attendance Rate', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                        const Text('Module Attendance Rate', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                         const SizedBox(height: 2),
-                        Text('$presentCount Attended / $totalClasses Total Sessions', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text('$presentCount Present • $absentCount Absent / $totalClasses Total Sessions', style: const TextStyle(color: Colors.grey, fontSize: 11)),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-            const Text('Class Attendance Log', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-            const SizedBox(height: 10),
+            const Text('Class Attendance Session Log', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 8),
 
             if (records.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(20),
-                child: Center(child: Text('No attendance records logged for this module yet.', style: TextStyle(color: Colors.grey))),
+                child: Center(child: Text('No attendance sessions logged for this module yet.', style: TextStyle(color: Colors.grey))),
               )
             else
               ...records.map((r) {
                 final isPresent = r.status == 'present' || r.status == 'late';
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(8)),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(r.date, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                      Text(r.date, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isPresent ? Colors.green.withAlpha(30) : Colors.red.withAlpha(30),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          r.status.toUpperCase(),
-                          style: TextStyle(
-                            color: isPresent ? Colors.greenAccent : Colors.redAccent,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: isPresent ? Colors.green.withAlpha(30) : Colors.red.withAlpha(30), borderRadius: BorderRadius.circular(4)),
+                        child: Text(r.status.toUpperCase(), style: TextStyle(color: isPresent ? Colors.greenAccent : Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -553,7 +664,107 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
     );
   }
 
-  // ─── 5. NOTICES TAB ────────────────────────────────────────────────────────
+  // ─── 7. RESULTS TAB (ONLY PUBLISHED) ───────────────────────────────────────
+  Widget _buildResultsTab() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('exam_results')
+          .where('studentId', isEqualTo: widget.studentId)
+          .where('isPublished', isEqualTo: true) // Strict security rule: Only published results
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: Colors.tealAccent));
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+        final results = docs
+            .map((d) => ExamResultModel.fromFirestore(d))
+            .where((r) => r.moduleCode.toUpperCase() == widget.subjectCode.toUpperCase())
+            .toList();
+
+        if (results.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.hourglass_empty_rounded, size: 54, color: Colors.grey.withAlpha(100)),
+                  const SizedBox(height: 14),
+                  const Text('No Published Examination Results', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Marks will appear here once officially approved and published by the Academic Administration.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView(
+          padding: const EdgeInsets.all(14),
+          children: results.map((res) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.amber.withAlpha(40)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(color: Colors.green.withAlpha(40), borderRadius: BorderRadius.circular(4)),
+                        child: const Text('OFFICIALLY PUBLISHED', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 10)),
+                      ),
+                      Text('Published: ${res.publishedAt?.substring(0, 10) ?? "Verified"}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Score Obtained', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                          Text('${res.obtainedMarks.toStringAsFixed(0)} / ${res.maxMarks.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text('Final Grade', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                          Text('${res.grade} (${res.gradePoint.toStringAsFixed(1)} GP)', style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 20)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Divider(color: Colors.white10),
+                  const SizedBox(height: 6),
+                  Text('Exam ID: ${res.examId} • Student ID: ${res.studentId}', style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  // ─── 8. NOTICES TAB ────────────────────────────────────────────────────────
   Widget _buildNoticesTab() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('announcements').snapshots(),
@@ -575,30 +786,26 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           itemCount: notices.length,
           itemBuilder: (context, index) {
             final n = notices[index];
             return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white10),
-              ),
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white10)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(n.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                      Text(n.publishDate, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                      Text(n.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text(n.publishDate, style: const TextStyle(color: Colors.grey, fontSize: 10)),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(n.description, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Text(n.description, style: const TextStyle(color: Colors.white70, fontSize: 12)),
                 ],
               ),
             );

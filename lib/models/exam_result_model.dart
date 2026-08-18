@@ -84,6 +84,9 @@ class ExamResultModel {
   bool get isPublished => status.toLowerCase() == 'published';
   bool get isLocked => isPublished;
 
+  String get moduleCode => moduleId;
+  double get obtainedMarks => marks;
+
   // Default university grading boundaries (if not configured dynamically in Firestore)
   static const List<GradingScale> defaultGradingScales = [
     GradingScale(grade: 'A+', minMarks: 90.0, maxMarks: 100.0, gradePoint: 4.0),

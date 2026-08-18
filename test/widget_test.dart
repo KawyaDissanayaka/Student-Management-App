@@ -10,6 +10,7 @@ import 'package:student_management_app/models/hall_model.dart';
 import 'package:student_management_app/models/material_model.dart';
 import 'package:student_management_app/models/submission_model.dart';
 import 'package:student_management_app/models/lecturer_model.dart';
+import 'package:student_management_app/models/attendance_model.dart';
 import 'package:student_management_app/models/attendance_session_model.dart';
 import 'package:student_management_app/models/exam_hall_model.dart';
 import 'package:student_management_app/models/exam_model.dart';
@@ -19,6 +20,7 @@ import 'package:student_management_app/models/exam_attendance_record_model.dart'
 import 'package:student_management_app/models/exam_result_model.dart';
 import 'package:student_management_app/models/fee_structure_model.dart';
 import 'package:student_management_app/models/module_registration_period_model.dart';
+import 'package:student_management_app/models/student_module_registration_model.dart';
 import 'package:student_management_app/services/exam_hall_service.dart';
 import 'package:student_management_app/services/exam_seating_service.dart';
 import 'package:student_management_app/services/exam_reports_service.dart';
@@ -1362,6 +1364,403 @@ void main() {
         maxModules: 6,
       );
       expect(validResult, null);
+    });
+
+    test('Student Module Registration Validation, Prerequisites & Credit Bounds Rules', () {
+      final existingRegistrations = [
+        StudentModuleRegistrationModel(
+          registrationId: 'MODREG-001-CS101',
+          studentId: 'STU-1001',
+          studentName: 'Alice',
+          studentEmail: 'alice@uni.lk',
+          moduleId: 'CS101',
+          moduleName: 'Intro to CS',
+          registrationPeriodId: 'MRP-2026-S1-001',
+          academicYear: '2025/2026',
+          semester: 'Semester 1',
+          credits: 3,
+          moduleType: 'Core',
+          status: 'Approved',
+          registeredAt: '2026-08-18',
+        ),
+      ];
+
+      final creditsMap = {
+        'CS101': 3,
+        'CS102': 4,
+        'CS103': 3,
+        'CS104': 4,
+        'CS105': 3,
+        'CS106': 4,
+        'CS107': 4,
+      };
+
+      final prereqMap = {
+        'CS102': ['CS101'],
+        'CS106': ['CS109'], // missing prerequisite
+      };
+
+      // 1. Duplicate Registration Prevention
+      final duplicateError = StudentModuleRegistrationModel.validateRegistrationSelection(
+        existingRegistrations: existingRegistrations,
+        candidateModuleCodes: ['CS101', 'CS102', 'CS103', 'CS104'],
+        moduleCreditsMap: creditsMap,
+        modulePrerequisitesMap: prereqMap,
+        studentPassedModuleCodes: ['CS101'],
+        minCredits: 12,
+        maxCredits: 24,
+        maxModules: 6,
+      );
+      expect(duplicateError != null, true);
+      expect(duplicateError!.contains('already registered'), true);
+
+      // 2. Missing Prerequisite Rejection
+      final prereqError = StudentModuleRegistrationModel.validateRegistrationSelection(
+        existingRegistrations: existingRegistrations,
+        candidateModuleCodes: ['CS102', 'CS106', 'CS103', 'CS104'],
+        moduleCreditsMap: creditsMap,
+        modulePrerequisitesMap: prereqMap,
+        studentPassedModuleCodes: ['CS101'], // does not have CS109
+        minCredits: 12,
+        maxCredits: 24,
+        maxModules: 6,
+      );
+      expect(prereqError != null, true);
+      expect(prereqError!.contains('Missing prerequisite: CS109'), true);
+
+      // 3. Under Minimum Credit Warning/Rejection
+      final underMinError = StudentModuleRegistrationModel.validateRegistrationSelection(
+        existingRegistrations: existingRegistrations,
+        candidateModuleCodes: ['CS102', 'CS103'], // Total 4+3 = 7 credits
+        moduleCreditsMap: creditsMap,
+        modulePrerequisitesMap: prereqMap,
+        studentPassedModuleCodes: ['CS101'],
+        minCredits: 12,
+        maxCredits: 24,
+        maxModules: 6,
+      );
+      expect(underMinError != null, true);
+      expect(underMinError!.contains('below the minimum required credit limit'), true);
+
+      // 4. Over Maximum Credit Rejection
+      final overMaxError = StudentModuleRegistrationModel.validateRegistrationSelection(
+        existingRegistrations: existingRegistrations,
+        candidateModuleCodes: ['CS102', 'CS103', 'CS104', 'CS105', 'CS107', 'CS106'], // Total 4+3+4+3+4+4 = 22 credits (if max is 18)
+        moduleCreditsMap: creditsMap,
+        modulePrerequisitesMap: prereqMap,
+        studentPassedModuleCodes: ['CS101', 'CS109'],
+        minCredits: 12,
+        maxCredits: 18,
+        maxModules: 6,
+      );
+      expect(overMaxError != null, true);
+      expect(overMaxError!.contains('exceed the maximum credit limit'), true);
+
+      // 5. Valid Selection Passes
+      final validSelection = StudentModuleRegistrationModel.validateRegistrationSelection(
+        existingRegistrations: existingRegistrations,
+        candidateModuleCodes: ['CS102', 'CS103', 'CS104', 'CS105'], // Total 4+3+4+3 = 14 credits
+        moduleCreditsMap: creditsMap,
+        modulePrerequisitesMap: prereqMap,
+        studentPassedModuleCodes: ['CS101'],
+        minCredits: 12,
+        maxCredits: 24,
+        maxModules: 6,
+      );
+      expect(validSelection, null);
+    });
+
+    test('Admin Module Registration Approval, Rejection & KPI Aggregations Rules', () {
+      final reg1 = StudentModuleRegistrationModel(
+        registrationId: 'MODREG-101-CS101',
+        studentId: 'STU-1001',
+        studentName: 'Alice',
+        studentEmail: 'alice@uni.lk',
+        programme: 'BSc Computing',
+        batchId: '2026',
+        moduleId: 'CS101',
+        moduleName: 'Database Systems',
+        registrationPeriodId: 'MRP-2026-S1-001',
+        academicYear: '2025/2026',
+        semester: 'Semester 1',
+        credits: 3,
+        moduleType: 'Core',
+        status: 'Pending',
+        registeredAt: '2026-08-18T09:00:00',
+      );
+
+      final reg2 = StudentModuleRegistrationModel(
+        registrationId: 'MODREG-102-CS102',
+        studentId: 'STU-1001',
+        studentName: 'Alice',
+        studentEmail: 'alice@uni.lk',
+        programme: 'BSc Computing',
+        batchId: '2026',
+        moduleId: 'CS102',
+        moduleName: 'Software Engineering',
+        registrationPeriodId: 'MRP-2026-S1-001',
+        academicYear: '2025/2026',
+        semester: 'Semester 1',
+        credits: 4,
+        moduleType: 'Core',
+        status: 'Approved',
+        registeredAt: '2026-08-18T09:00:00',
+        approvedAt: '2026-08-18T10:00:00',
+        approvedBy: 'ADMIN-BURSAR',
+      );
+
+      final reg3 = StudentModuleRegistrationModel(
+        registrationId: 'MODREG-103-CS103',
+        studentId: 'STU-1002',
+        studentName: 'Bob',
+        studentEmail: 'bob@uni.lk',
+        programme: 'BSc Computing',
+        batchId: '2026',
+        moduleId: 'CS103',
+        moduleName: 'Computer Networks',
+        registrationPeriodId: 'MRP-2026-S1-001',
+        academicYear: '2025/2026',
+        semester: 'Semester 1',
+        credits: 3,
+        moduleType: 'Elective',
+        status: 'Rejected',
+        registeredAt: '2026-08-18T09:00:00',
+        rejectedAt: '2026-08-18T10:30:00',
+        rejectedBy: 'ADMIN-BURSAR',
+        rejectionReason: 'Prerequisites CS101 not met',
+      );
+
+      final reg4 = StudentModuleRegistrationModel(
+        registrationId: 'MODREG-104-CS104',
+        studentId: 'STU-1003',
+        studentName: 'Charlie',
+        studentEmail: 'charlie@uni.lk',
+        programme: 'BSc Computing',
+        batchId: '2026',
+        moduleId: 'CS104',
+        moduleName: 'Web Development',
+        registrationPeriodId: 'MRP-2026-S1-001',
+        academicYear: '2025/2026',
+        semester: 'Semester 1',
+        credits: 3,
+        moduleType: 'Optional',
+        status: 'Dropped',
+        registeredAt: '2026-08-18T09:00:00',
+        droppedAt: '2026-08-18T11:00:00',
+        droppedBy: 'ADMIN-BURSAR',
+        dropReason: 'Course load adjustment requested',
+      );
+
+      final list = [reg1, reg2, reg3, reg4];
+
+      // 1. KPI Aggregations
+      expect(list.length, 4); // Total
+      expect(list.where((r) => r.isPending).length, 1);
+      expect(list.where((r) => r.isApproved).length, 1);
+      expect(list.where((r) => r.isRejected).length, 1);
+      expect(list.where((r) => r.isDropped).length, 1);
+      expect(list.map((r) => r.studentId).toSet().length, 3); // Unique Students
+
+      // 2. Transition from Pending -> Approved
+      final approvedReg1 = StudentModuleRegistrationModel(
+        registrationId: reg1.registrationId,
+        studentId: reg1.studentId,
+        studentName: reg1.studentName,
+        studentEmail: reg1.studentEmail,
+        programme: reg1.programme,
+        batchId: reg1.batchId,
+        moduleId: reg1.moduleId,
+        moduleName: reg1.moduleName,
+        registrationPeriodId: reg1.registrationPeriodId,
+        academicYear: reg1.academicYear,
+        semester: reg1.semester,
+        credits: reg1.credits,
+        moduleType: reg1.moduleType,
+        status: 'Approved',
+        registeredAt: reg1.registeredAt,
+        approvedAt: '2026-08-18T12:00:00',
+        approvedBy: 'ADMIN-ACADEMIC',
+      );
+
+      expect(approvedReg1.isApproved, true);
+      expect(approvedReg1.approvedAt, '2026-08-18T12:00:00');
+      expect(approvedReg1.approvedBy, 'ADMIN-ACADEMIC');
+      expect(approvedReg1.toMap()['status'], 'Approved');
+
+      // 3. Rejection & Drop reasons audit
+      expect(reg3.rejectionReason, 'Prerequisites CS101 not met');
+      expect(reg4.dropReason, 'Course load adjustment requested');
+    });
+
+    test('Student My Modules Approved Filter & Module Details Cross-Collection Rules', () {
+      final regApproved1 = StudentModuleRegistrationModel(
+        registrationId: 'MODREG-201-CS101',
+        studentId: 'STU-1001',
+        studentName: 'Alice',
+        studentEmail: 'alice@uni.lk',
+        programme: 'BSc Computing',
+        batchId: '2026',
+        moduleId: 'CS101',
+        moduleName: 'Database Systems',
+        registrationPeriodId: 'MRP-2026-S1-001',
+        academicYear: '2025/2026',
+        semester: 'Semester 1',
+        credits: 3,
+        moduleType: 'Core',
+        status: 'Approved',
+        registeredAt: '2026-08-18',
+      );
+
+      final regPending2 = StudentModuleRegistrationModel(
+        registrationId: 'MODREG-202-CS102',
+        studentId: 'STU-1001',
+        studentName: 'Alice',
+        studentEmail: 'alice@uni.lk',
+        programme: 'BSc Computing',
+        batchId: '2026',
+        moduleId: 'CS102',
+        moduleName: 'Software Engineering',
+        registrationPeriodId: 'MRP-2026-S1-001',
+        academicYear: '2025/2026',
+        semester: 'Semester 1',
+        credits: 4,
+        moduleType: 'Core',
+        status: 'Pending',
+        registeredAt: '2026-08-18',
+      );
+
+      final allStudentRegistrations = [regApproved1, regPending2];
+
+      // 1. My Modules rule: ONLY Approved registrations are displayed to the student
+      final visibleModules = allStudentRegistrations.where((r) => r.isApproved).toList();
+      expect(visibleModules.length, 1);
+      expect(visibleModules.first.moduleId, 'CS101');
+      expect(visibleModules.any((r) => r.isPending), false);
+
+      // 2. Module Attendance Calculation Rule for CS101
+      final attRecords = [
+        AttendanceModel(studentDocId: 'doc1', studentId: 'STU-1001', studentName: 'Alice', subjectCode: 'CS101', subjectName: 'Database Systems', date: '2026-08-01', status: 'present', markedBy: 'Lecturer', batch: '2026', semester: 'Semester 1'),
+        AttendanceModel(studentDocId: 'doc1', studentId: 'STU-1001', studentName: 'Alice', subjectCode: 'CS101', subjectName: 'Database Systems', date: '2026-08-08', status: 'present', markedBy: 'Lecturer', batch: '2026', semester: 'Semester 1'),
+        AttendanceModel(studentDocId: 'doc1', studentId: 'STU-1001', studentName: 'Alice', subjectCode: 'CS101', subjectName: 'Database Systems', date: '2026-08-15', status: 'absent', markedBy: 'Lecturer', batch: '2026', semester: 'Semester 1'),
+      ];
+
+      final totalSessions = attRecords.length;
+      final presentCount = attRecords.where((a) => a.status == 'present' || a.status == 'late').length;
+      final attPct = (presentCount / totalSessions) * 100.0;
+      expect(totalSessions, 3);
+      expect(presentCount, 2);
+      expect(attPct.toStringAsFixed(1), '66.7');
+
+      // 3. Results Tab: Strict Published Results Only rule
+      final resultDraft = ExamResultModel(
+        resultId: 'RES-001',
+        examId: 'EXAM-101',
+        examDocId: 'doc1',
+        moduleId: 'CS101',
+        subjectName: 'Database Systems',
+        studentId: 'STU-1001',
+        studentName: 'Alice',
+        studentEmail: 'alice@uni.lk',
+        marks: 85.0,
+        grade: 'A',
+        gradePoint: 4.0,
+        status: 'Draft',
+        updatedAt: '2026-08-18',
+      );
+
+      final resultPublished = ExamResultModel(
+        resultId: 'RES-002',
+        examId: 'EXAM-101',
+        examDocId: 'doc2',
+        moduleId: 'CS101',
+        subjectName: 'Database Systems',
+        studentId: 'STU-1001',
+        studentName: 'Alice',
+        studentEmail: 'alice@uni.lk',
+        marks: 85.0,
+        grade: 'A',
+        gradePoint: 4.0,
+        status: 'Published',
+        publishedAt: '2026-08-18',
+        updatedAt: '2026-08-18',
+      );
+
+      final allResults = [resultDraft, resultPublished];
+      final visiblePublishedResults = allResults.where((r) => r.isPublished).toList();
+      expect(visiblePublishedResults.length, 1);
+      expect(visiblePublishedResults.first.grade, 'A');
+      expect(visiblePublishedResults.first.isLocked, true);
+    });
+
+    test('Lecture Materials & Slides Management Attributes, File Validation & Visibility Rules', () {
+      // 1. Material Model Attributes & Serialization
+      final mat1 = MaterialModel(
+        materialId: 'MAT-101',
+        moduleId: 'CS101',
+        subjectName: 'Database Systems',
+        title: 'Introduction to SQL and Relational Modeling',
+        description: 'Lecture slides covering ER Diagrams, Normalization, and DDL commands.',
+        type: 'Lecture Slide',
+        fileName: 'CS101_Week1_Slides.pptx',
+        fileUrl: 'https://firebasestorage.googleapis.com/v0/b/studentapp/o/materials%2FCS101%2FCS101_Week1_Slides.pptx',
+        fileSize: '5.2 MB',
+        uploadedBy: 'lec.lee@uni.lk',
+        uploadedByName: 'Dr. Lee',
+        uploadedAt: '2026-08-18T10:00:00',
+        publishDate: '2026-08-18',
+        status: 'Published',
+        weekNumber: 1,
+      );
+
+      final mat2 = MaterialModel(
+        materialId: 'MAT-102',
+        moduleId: 'CS101',
+        subjectName: 'Database Systems',
+        title: 'Midterm Draft Preparation Notes',
+        description: 'Internal draft notes for lecturer review.',
+        type: 'Note',
+        fileName: 'CS101_Midterm_Draft.pdf',
+        fileUrl: 'https://firebasestorage.googleapis.com/v0/b/studentapp/o/materials%2FCS101%2FCS101_Midterm_Draft.pdf',
+        fileSize: '1.8 MB',
+        uploadedBy: 'lec.lee@uni.lk',
+        uploadedByName: 'Dr. Lee',
+        uploadedAt: '2026-08-18T11:00:00',
+        publishDate: '2026-08-25',
+        status: 'Draft',
+        weekNumber: 5,
+      );
+
+      expect(mat1.isPublished, true);
+      expect(mat1.isDraft, false);
+      expect(mat2.isPublished, false);
+      expect(mat2.isDraft, true);
+
+      // 2. Student Visibility Rule (Only Published Materials)
+      final allMaterials = [mat1, mat2];
+      final studentVisibleMaterials = allMaterials.where((m) => m.isPublished).toList();
+      expect(studentVisibleMaterials.length, 1);
+      expect(studentVisibleMaterials.first.materialId, 'MAT-101');
+
+      // 3. Supported Material Types Verification
+      expect(MaterialModel.supportedTypes.contains('Lecture Slide'), true);
+      expect(MaterialModel.supportedTypes.contains('PDF'), true);
+      expect(MaterialModel.supportedTypes.contains('Note'), true);
+      expect(MaterialModel.supportedTypes.contains('Document'), true);
+      expect(MaterialModel.supportedTypes.contains('Other'), true);
+
+      // 4. File Type & Extension Validation
+      expect(MaterialModel.validateFileType('slides.pptx'), null);
+      expect(MaterialModel.validateFileType('notes.pdf'), null);
+      expect(MaterialModel.validateFileType('summary.docx'), null);
+      expect(MaterialModel.validateFileType('archive.zip'), null);
+      expect(MaterialModel.validateFileType('malicious.exe') != null, true);
+      expect(MaterialModel.validateFileType('') != null, true);
+
+      // 5. File Size Validation (Max 25 MB)
+      expect(MaterialModel.validateFileSize(5.2), null);
+      expect(MaterialModel.validateFileSize(24.9), null);
+      expect(MaterialModel.validateFileSize(25.1) != null, true);
+      expect(MaterialModel.validateFileSize(0.0) != null, true);
     });
   });
 }

@@ -6,6 +6,8 @@ class StudentModuleRegistrationModel {
   final String studentId;
   final String studentName;
   final String studentEmail;
+  final String programme;
+  final String batchId;
   final String moduleId; // moduleCode e.g. 'CS101'
   final String moduleName;
   final String registrationPeriodId;
@@ -17,7 +19,12 @@ class StudentModuleRegistrationModel {
   final String registeredAt;
   final String? approvedAt;
   final String? approvedBy;
+  final String? rejectedAt;
+  final String? rejectedBy;
   final String? rejectionReason;
+  final String? droppedAt;
+  final String? droppedBy;
+  final String? dropReason;
 
   StudentModuleRegistrationModel({
     this.docId,
@@ -25,6 +32,8 @@ class StudentModuleRegistrationModel {
     required this.studentId,
     required this.studentName,
     required this.studentEmail,
+    this.programme = 'BSc (Hons) in Computing',
+    this.batchId = '2026',
     required this.moduleId,
     required this.moduleName,
     required this.registrationPeriodId,
@@ -32,11 +41,16 @@ class StudentModuleRegistrationModel {
     required this.semester,
     required this.credits,
     this.moduleType = 'Core',
-    this.status = 'Approved',
+    this.status = 'Pending',
     required this.registeredAt,
     this.approvedAt,
     this.approvedBy,
+    this.rejectedAt,
+    this.rejectedBy,
     this.rejectionReason,
+    this.droppedAt,
+    this.droppedBy,
+    this.dropReason,
   });
 
   static const List<String> supportedStatuses = ['Pending', 'Approved', 'Rejected', 'Dropped'];
@@ -108,6 +122,8 @@ class StudentModuleRegistrationModel {
       'studentId': studentId,
       'studentName': studentName,
       'studentEmail': studentEmail,
+      'programme': programme,
+      'batchId': batchId,
       'moduleId': moduleId,
       'moduleName': moduleName,
       'registrationPeriodId': registrationPeriodId,
@@ -119,7 +135,12 @@ class StudentModuleRegistrationModel {
       'registeredAt': registeredAt,
       'approvedAt': approvedAt,
       'approvedBy': approvedBy,
+      'rejectedAt': rejectedAt,
+      'rejectedBy': rejectedBy,
       'rejectionReason': rejectionReason,
+      'droppedAt': droppedAt,
+      'droppedBy': droppedBy,
+      'dropReason': dropReason,
     };
   }
 
@@ -131,6 +152,8 @@ class StudentModuleRegistrationModel {
       studentId: data['studentId'] ?? '',
       studentName: data['studentName'] ?? '',
       studentEmail: data['studentEmail'] ?? '',
+      programme: data['programme'] ?? 'BSc (Hons) in Computing',
+      batchId: data['batchId'] ?? '2026',
       moduleId: data['moduleId'] ?? '',
       moduleName: data['moduleName'] ?? '',
       registrationPeriodId: data['registrationPeriodId'] ?? '',
@@ -138,11 +161,16 @@ class StudentModuleRegistrationModel {
       semester: data['semester'] ?? '',
       credits: (data['credits'] as num?)?.toInt() ?? 3,
       moduleType: data['moduleType'] ?? 'Core',
-      status: data['status'] ?? 'Approved',
+      status: data['status'] ?? 'Pending',
       registeredAt: data['registeredAt'] ?? DateTime.now().toIso8601String(),
       approvedAt: data['approvedAt'],
       approvedBy: data['approvedBy'],
+      rejectedAt: data['rejectedAt'],
+      rejectedBy: data['rejectedBy'],
       rejectionReason: data['rejectionReason'],
+      droppedAt: data['droppedAt'],
+      droppedBy: data['droppedBy'],
+      dropReason: data['dropReason'],
     );
   }
 }
