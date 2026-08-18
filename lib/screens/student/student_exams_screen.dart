@@ -8,6 +8,7 @@ import '../../models/exam_model.dart';
 import '../../models/exam_registration_model.dart';
 import '../../models/exam_seating_model.dart';
 import '../../models/exam_attendance_record_model.dart';
+import 'student_exam_admission_card_screen.dart';
 
 class StudentExamsScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -352,6 +353,36 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> with SingleTick
                   const Text('Semester 1 • Academic Year 2026', style: TextStyle(color: Colors.grey, fontSize: 11)),
                 ],
               ),
+              if (registrations.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudentExamAdmissionCardScreen(
+                            studentName: studentName,
+                            studentId: studentId,
+                            studentEmail: studentId,
+                            batch: batch,
+                            registrations: registrations,
+                            seatings: seatings,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amberAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.badge_rounded, color: Colors.black87, size: 16),
+                    label: const Text('View Official Admission Card', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

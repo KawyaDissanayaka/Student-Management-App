@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../models/exam_model.dart';
 import '../../models/exam_registration_model.dart';
 import '../../models/exam_seating_model.dart';
 import '../../models/exam_hall_model.dart';

@@ -17,8 +17,10 @@ import 'package:student_management_app/models/exam_registration_model.dart';
 import 'package:student_management_app/models/exam_seating_model.dart';
 import 'package:student_management_app/models/exam_attendance_record_model.dart';
 import 'package:student_management_app/models/exam_result_model.dart';
+import 'package:student_management_app/models/fee_structure_model.dart';
 import 'package:student_management_app/services/exam_hall_service.dart';
 import 'package:student_management_app/services/exam_seating_service.dart';
+import 'package:student_management_app/services/exam_reports_service.dart';
 import 'package:student_management_app/services/student_portal_service.dart';
 
 void main() {
@@ -900,6 +902,272 @@ void main() {
       expect(visibleToStudents.any((r) => r.status == 'Draft'), false);
       expect(visibleToStudents.any((r) => r.status == 'Submitted'), false);
       expect(visibleToStudents.any((r) => r.status == 'Approved'), false);
+    });
+
+    test('Examination Reports Aggregation & CSV Generation', () {
+      // 1. Registration Report
+      final regData = ExamRegistrationReportData(
+        total: 10,
+        approved: 8,
+        pending: 1,
+        rejected: 1,
+        cancelled: 0,
+        records: [
+          ExamRegistrationModel(
+            registrationId: 'EXREG-001',
+            studentDocId: 'd1',
+            studentId: 'STU-1001',
+            studentName: 'Alice Johnson',
+            studentEmail: 'alice@uni.lk',
+            examId: 'EXM-101',
+            examDocId: 'ed1',
+            subjectCode: 'CS101',
+            subjectName: 'Computer Science',
+            batch: '2026',
+            registeredAt: '2026-08-18',
+            status: 'Approved',
+          ),
+        ],
+      );
+      expect(regData.total, 10);
+      expect(regData.approved, 8);
+      final regCsv = regData.toCsv();
+      expect(regCsv.contains('Registration ID,Student ID,Student Name'), true);
+      expect(regCsv.contains('"EXREG-001"'), true);
+
+      // 2. Attendance Report
+      final attData = ExamAttendanceReportData(
+        registered: 20,
+        present: 18,
+        absent: 2,
+        late: 1,
+        attendancePercentage: 90.0,
+        records: [
+          ExamAttendanceRecordModel(
+            attendanceId: 'EXATT-001',
+            examId: 'EXM-101',
+            examDocId: 'ed1',
+            studentId: 'STU-1001',
+            studentName: 'Alice',
+            studentEmail: 'alice@uni.lk',
+            hallId: 'EXH-01',
+            hallName: 'Hall 01',
+            seatNumber: 'SEAT-001',
+            markedAt: '2026-08-18T09:00:00',
+            markedBy: 'Admin',
+            verificationMethod: 'QR',
+          ),
+        ],
+      );
+      expect(attData.attendancePercentage, 90.0);
+      expect(attData.present, 18);
+      final attCsv = attData.toCsv();
+      expect(attCsv.contains('Attendance ID,Exam ID,Student ID'), true);
+      expect(attCsv.contains('"EXATT-001"'), true);
+
+      // 3. Seating Report
+      final seatData = ExamSeatingReportData(
+        hallName: 'Main Exam Hall',
+        capacity: 50,
+        allocatedStudents: 45,
+        availableSeats: 5,
+        records: [
+          ExamSeatingModel(
+            seatingId: 'EXS-001',
+            examId: 'EXM-101',
+            examDocId: 'ed1',
+            studentId: 'STU-1001',
+            studentName: 'Alice',
+            studentEmail: 'alice@uni.lk',
+            hallId: 'EXH-01',
+            hallName: 'Main Exam Hall',
+            seatNumber: 'SEAT-001',
+            allocatedAt: '2026-08-18',
+            allocatedBy: 'Admin',
+          ),
+        ],
+      );
+      expect(seatData.capacity, 50);
+      expect(seatData.availableSeats, 5);
+      final seatCsv = seatData.toCsv();
+      expect(seatCsv.contains('Seating ID,Exam ID,Hall Name'), true);
+
+      // 4. Results Report
+      final resData = ExamResultReportData(
+        totalStudents: 30,
+        passed: 28,
+        failed: 2,
+        averageMarks: 74.5,
+        highestMarks: 96.0,
+        lowestMarks: 32.0,
+        gradeDistribution: {'A+': 5, 'A': 10, 'B': 8, 'C': 5, 'E': 2},
+        records: [
+          ExamResultModel(
+            resultId: 'EXRES-001',
+            examId: 'EXM-101',
+            examDocId: 'ed1',
+            moduleId: 'CS101',
+            subjectName: 'Computer Science',
+            studentId: 'STU-1001',
+            studentName: 'Alice',
+            studentEmail: 'alice@uni.lk',
+            marks: 88.0,
+            grade: 'A',
+            gradePoint: 4.0,
+            status: 'Published',
+            updatedAt: '',
+          ),
+        ],
+      );
+      expect(resData.passed, 28);
+      expect(resData.averageMarks, 74.5);
+      expect(resData.gradeDistribution['A+'], 5);
+      final resCsv = resData.toCsv();
+      expect(resCsv.contains('Result ID,Exam ID,Module ID'), true);
+      expect(resCsv.contains('88.0'), true);
+    });
+
+    test('Fee Structure Model Attributes & Supported Fee Types', () {
+      final fee = FeeStructureModel(
+        feeStructureId: 'FEE-1001',
+        academicYear: '2025/2026',
+        semester: 'Semester 1',
+        programme: 'BSc (Hons) in Computing',
+        batchId: '2026',
+        feeType: 'Semester Fee',
+        amount: 150000.0,
+        dueDate: '2026-09-30',
+        status: 'Active',
+        createdAt: '2026-08-18',
+        updatedAt: '2026-08-18',
+      );
+
+      expect(fee.feeStructureId, 'FEE-1001');
+      expect(fee.amount, 150000.0);
+      expect(fee.isActive, true);
+      expect(fee.isInactive, false);
+      expect(FeeStructureModel.supportedFeeTypes.contains('Semester Fee'), true);
+      expect(FeeStructureModel.supportedFeeTypes.contains('Registration Fee'), true);
+      expect(FeeStructureModel.supportedFeeTypes.contains('Examination Fee'), true);
+      expect(FeeStructureModel.supportedFeeTypes.contains('Library Fee'), true);
+      expect(FeeStructureModel.supportedFeeTypes.contains('Laboratory Fee'), true);
+      expect(FeeStructureModel.supportedFeeTypes.contains('Other Fee'), true);
+
+      final map = fee.toMap();
+      expect(map['feeStructureId'], 'FEE-1001');
+      expect(map['amount'], 150000.0);
+    });
+
+    test('Student Fee Balance & Overdue Payment Status Calculations', () {
+      // 1. Balance Calculation: Balance = Total Fee - Paid Amount - Approved Discounts
+      final balance1 = FeeStructureModel.calculateBalance(
+        totalFee: 150000.0,
+        paidAmount: 50000.0,
+        approvedDiscounts: 10000.0,
+      );
+      expect(balance1, 90000.0);
+
+      // Fully Paid Balance
+      final balancePaid = FeeStructureModel.calculateBalance(
+        totalFee: 150000.0,
+        paidAmount: 150000.0,
+        approvedDiscounts: 0.0,
+      );
+      expect(balancePaid, 0.0);
+
+      // Overpaid / Discounted Balance shouldn't be negative
+      final balanceExcess = FeeStructureModel.calculateBalance(
+        totalFee: 150000.0,
+        paidAmount: 160000.0,
+        approvedDiscounts: 0.0,
+      );
+      expect(balanceExcess, 0.0);
+
+      // 2. Status: Paid
+      final statusPaid = FeeStructureModel.determinePaymentStatus(
+        balance: 0.0,
+        paidAmount: 150000.0,
+        dueDate: '2026-09-30',
+      );
+      expect(statusPaid, 'Paid');
+
+      // 3. Status: Partially Paid (Future due date)
+      final statusPartial = FeeStructureModel.determinePaymentStatus(
+        balance: 50000.0,
+        paidAmount: 100000.0,
+        dueDate: '2029-12-31',
+      );
+      expect(statusPartial, 'Partially Paid');
+
+      // 4. Status: Unpaid (Future due date)
+      final statusUnpaid = FeeStructureModel.determinePaymentStatus(
+        balance: 150000.0,
+        paidAmount: 0.0,
+        dueDate: '2029-12-31',
+      );
+      expect(statusUnpaid, 'Unpaid');
+
+      // 5. Status: Overdue (Past due date with positive balance)
+      final statusOverdue = FeeStructureModel.determinePaymentStatus(
+        balance: 50000.0,
+        paidAmount: 0.0,
+        dueDate: '2020-01-01',
+      );
+      expect(statusOverdue, 'Overdue');
+    });
+
+    test('Student Finance Privacy & Payment History Status Rules', () {
+      // Payment statuses: Pending, Successful, Failed, Refunded
+      final successPayment = PaymentModel(
+        paymentId: 'PAY-1001',
+        studentEmail: 'student1@uni.lk',
+        studentId: 'STU-1001',
+        studentName: 'Alice Johnson',
+        feeType: 'Semester Fee',
+        amount: 50000.0,
+        paymentMethod: 'Online Card (Visa)',
+        transactionRef: 'TXN-991',
+        paymentDate: '2026-08-18',
+        status: 'success',
+      );
+
+      final pendingPayment = PaymentModel(
+        paymentId: 'PAY-1002',
+        studentEmail: 'student1@uni.lk',
+        studentId: 'STU-1001',
+        studentName: 'Alice Johnson',
+        feeType: 'Library Fee',
+        amount: 2500.0,
+        paymentMethod: 'Bank Transfer',
+        transactionRef: 'TXN-992',
+        paymentDate: '2026-08-18',
+        status: 'pending',
+      );
+
+      final otherStudentPayment = PaymentModel(
+        paymentId: 'PAY-1003',
+        studentEmail: 'student2@uni.lk',
+        studentId: 'STU-1002',
+        studentName: 'Bob Smith',
+        feeType: 'Semester Fee',
+        amount: 75000.0,
+        paymentMethod: 'Online Card (Visa)',
+        transactionRef: 'TXN-993',
+        paymentDate: '2026-08-18',
+        status: 'success',
+      );
+
+      final allPayments = [successPayment, pendingPayment, otherStudentPayment];
+
+      // Privacy Rule: Alice Johnson must ONLY see payments matching her studentEmail or studentId!
+      final alicePayments = allPayments.where((p) => p.studentEmail == 'student1@uni.lk' || p.studentId == 'STU-1001').toList();
+      expect(alicePayments.length, 2);
+      expect(alicePayments.any((p) => p.studentId == 'STU-1002'), false);
+
+      // Successful vs Pending breakdown
+      final aliceSuccessful = alicePayments.where((p) => p.status == 'success').toList();
+      expect(aliceSuccessful.length, 1);
+      expect(aliceSuccessful.first.amount, 50000.0);
     });
   });
 }

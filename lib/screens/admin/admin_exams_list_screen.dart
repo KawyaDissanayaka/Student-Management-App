@@ -7,6 +7,7 @@ import 'admin_exam_registrations_screen.dart';
 import 'admin_exam_seating_screen.dart';
 import 'admin_exam_attendance_screen.dart';
 import 'admin_exam_results_approval_screen.dart';
+import 'admin_exam_reports_screen.dart';
 
 class AdminExamsListScreen extends StatefulWidget {
   const AdminExamsListScreen({super.key});
@@ -640,6 +641,16 @@ class _AdminExamsListScreenState extends State<AdminExamsListScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.analytics_rounded, color: Colors.amberAccent),
+            tooltip: 'Examination Reports & Analytics',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminExamReportsScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.people_alt_rounded, color: Colors.cyanAccent),
             tooltip: 'View All Exam Registrations',

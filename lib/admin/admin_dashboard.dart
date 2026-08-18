@@ -17,6 +17,8 @@ import '../screens/admin/admin_attendance_settings_screen.dart';
 import '../screens/admin/admin_exam_halls_screen.dart';
 import '../screens/admin/admin_exams_list_screen.dart';
 import '../screens/admin/admin_exam_registrations_screen.dart';
+import '../screens/admin/admin_exam_reports_screen.dart';
+import '../screens/admin/admin_fee_structures_screen.dart';
 import '../screens/admin/halls_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
@@ -194,6 +196,28 @@ class AdminDashboard extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AdminExamRegistrationsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.analytics_rounded, color: Colors.amberAccent),
+              title: const Text('Examination Reports & Analytics', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminExamReportsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.account_balance_wallet_rounded, color: Colors.tealAccent),
+              title: const Text('Fee Structures & Finance', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminFeeStructuresScreen()),
                 );
               },
             ),
