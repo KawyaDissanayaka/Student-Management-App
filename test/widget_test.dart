@@ -1929,5 +1929,166 @@ void main() {
 
       expect(startedTask.effectiveStatus, 'in_progress');
     });
+
+    test('Announcement Management Targeting, Auto-Expiry & Read/Unread Rules', () {
+      // 1. Model Serialization & Priority Attributes
+      final ann1 = AnnouncementModel(
+        announcementId: 'ANN-2026-001',
+        title: 'Library Extended Hours',
+        description: 'The library will stay open 24/7 during finals week.',
+        audience: 'everyone',
+        publishDate: '2026-08-01',
+        expiryDate: '2026-08-30', // Future
+        status: 'Published',
+        priority: 'Normal',
+        createdBy: 'Admin',
+      );
+
+      final annExpired = AnnouncementModel(
+        announcementId: 'ANN-2026-002',
+        title: 'Campus Shuttle Maintenance',
+        description: 'Shuttle routes suspended on 5th Aug.',
+        audience: 'everyone',
+        publishDate: '2026-08-01',
+        expiryDate: '2026-08-05', // Past date
+        status: 'Published',
+        priority: 'Important',
+        createdBy: 'Admin',
+      );
+
+      final annProgramme = AnnouncementModel(
+        announcementId: 'ANN-2026-003',
+        title: 'BSc Computing Industry Workshop',
+        description: 'Guest lecture on Cloud Architecture.',
+        audience: 'specific_programme',
+        programme: 'BSc Computing',
+        publishDate: '2026-08-15',
+        expiryDate: '2026-08-30',
+        status: 'Published',
+        priority: 'Urgent',
+        createdBy: 'Admin',
+        readBy: ['alice@uni.lk'],
+      );
+
+      final annBatch = AnnouncementModel(
+        announcementId: 'ANN-2026-004',
+        title: 'Batch 2026 Orientation',
+        description: 'Meeting in Auditorium 2.',
+        audience: 'specific_batch',
+        batchId: '2026',
+        publishDate: '2026-08-15',
+        expiryDate: '2026-08-30',
+        status: 'Published',
+        priority: 'Important',
+        createdBy: 'Admin',
+      );
+
+      final annModule = AnnouncementModel(
+        announcementId: 'ANN-2026-005',
+        title: 'CS101 Lab Rescheduled',
+        description: 'Lab 3 moved to Hall B.',
+        audience: 'specific_module',
+        moduleId: 'CS101',
+        publishDate: '2026-08-15',
+        expiryDate: '2026-08-30',
+        status: 'Published',
+        priority: 'Urgent',
+        createdBy: 'Dr. Lee',
+      );
+
+      // 2. Automated Expiry Rule
+      expect(ann1.isExpired, false);
+      expect(annExpired.isExpired, true);
+      expect(annExpired.effectiveStatus, 'expired');
+
+      // 3. Audience Targeting Rule for Alice (BSc Computing, Batch 2026, enrolled in CS101)
+      expect(
+        AnnouncementModel.isTargetedToStudent(
+          announcement: ann1,
+          studentId: 'STU-1001',
+          studentEmail: 'alice@uni.lk',
+          programme: 'BSc Computing',
+          batchId: '2026',
+          enrolledModuleIds: ['CS101', 'CS102'],
+        ),
+        true,
+      );
+
+      expect(
+        AnnouncementModel.isTargetedToStudent(
+          announcement: annProgramme,
+          studentId: 'STU-1001',
+          studentEmail: 'alice@uni.lk',
+          programme: 'BSc Computing',
+          batchId: '2026',
+          enrolledModuleIds: ['CS101'],
+        ),
+        true,
+      );
+
+      expect(
+        AnnouncementModel.isTargetedToStudent(
+          announcement: annProgramme,
+          studentId: 'STU-1002',
+          studentEmail: 'bob@uni.lk',
+          programme: 'BSc Business', // Different programme
+          batchId: '2026',
+          enrolledModuleIds: ['MGT101'],
+        ),
+        false,
+      );
+
+      expect(
+        AnnouncementModel.isTargetedToStudent(
+          announcement: annBatch,
+          studentId: 'STU-1001',
+          studentEmail: 'alice@uni.lk',
+          programme: 'BSc Computing',
+          batchId: '2026', // Matching batch
+          enrolledModuleIds: ['CS101'],
+        ),
+        true,
+      );
+
+      expect(
+        AnnouncementModel.isTargetedToStudent(
+          announcement: annBatch,
+          studentId: 'STU-1002',
+          studentEmail: 'bob@uni.lk',
+          programme: 'BSc Computing',
+          batchId: '2025', // Non-matching batch
+          enrolledModuleIds: ['CS101'],
+        ),
+        false,
+      );
+
+      expect(
+        AnnouncementModel.isTargetedToStudent(
+          announcement: annModule,
+          studentId: 'STU-1001',
+          studentEmail: 'alice@uni.lk',
+          programme: 'BSc Computing',
+          batchId: '2026',
+          enrolledModuleIds: ['CS101'], // Enrolled in CS101
+        ),
+        true,
+      );
+
+      expect(
+        AnnouncementModel.isTargetedToStudent(
+          announcement: annModule,
+          studentId: 'STU-1002',
+          studentEmail: 'bob@uni.lk',
+          programme: 'BSc Computing',
+          batchId: '2026',
+          enrolledModuleIds: ['CS201'], // Not enrolled in CS101
+        ),
+        false,
+      );
+
+      // 4. Read/Unread Tracking
+      expect(annProgramme.isReadBy('alice@uni.lk'), true);
+      expect(annProgramme.isReadBy('bob@uni.lk'), false);
+    });
   });
 }

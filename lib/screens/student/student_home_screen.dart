@@ -26,6 +26,8 @@ import 'campus_transport_screen.dart';
 import 'student_settings_screen.dart';
 import '../user_announcements_screen.dart';
 import '../user_notifications_screen.dart';
+import '../../models/announcement_model.dart';
+import '../../services/announcement_service.dart';
 
 class StudentHomeScreen extends StatelessWidget {
   final Map<String, dynamic>? userData;
@@ -71,6 +73,61 @@ class StudentHomeScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          // Announcements with Unread Badge
+          StreamBuilder<List<AnnouncementModel>>(
+            stream: AnnouncementService().getStudentAnnouncementsStream(
+              studentEmail: email,
+              studentId: studentId,
+              programme: course,
+              batchId: batch,
+            ),
+            builder: (context, annSnap) {
+              final allAnnouncements = annSnap.data ?? [];
+              final unreadAnnCount = allAnnouncements.where((a) => !a.isReadBy(email)).length;
+
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.campaign_rounded, color: Colors.pinkAccent),
+                    tooltip: 'Announcements',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserAnnouncementsScreen(
+                            userEmail: email,
+                            userName: name,
+                            userRole: 'Student',
+                            studentId: studentId,
+                            programme: course,
+                            batchId: batch,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  if (unreadAnnCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(color: Colors.pinkAccent, shape: BoxShape.circle),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          '$unreadAnnCount',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+
+          // Notifications with Unread Badge
           StreamBuilder<int>(
             stream: NotificationService().getUnreadCountStream(email, 'Student'),
             builder: (context, notifSnap) {
@@ -350,7 +407,19 @@ class StudentHomeScreen extends StatelessWidget {
                                             Navigator.push(context, MaterialPageRoute(builder: (context) => StudentModuleRegistrationScreen(userData: userData)));
                                           }),
                                           _buildServiceTile('Notices', Icons.campaign_rounded, Colors.pinkAccent, () {
-                                            Navigator.push(context, MaterialPageRoute(builder: (context) => UserAnnouncementsScreen(userEmail: email, userName: name, userRole: 'Student')));
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => UserAnnouncementsScreen(
+                                                  userEmail: email,
+                                                  userName: name,
+                                                  userRole: 'Student',
+                                                  studentId: studentId,
+                                                  programme: course,
+                                                  batchId: batch,
+                                                ),
+                                              ),
+                                            );
                                           }),
                                           _buildServiceTile('Campus Map', Icons.map_rounded, Colors.tealAccent, () {
                                             Navigator.push(context, MaterialPageRoute(builder: (context) => const CampusMapScreen()));

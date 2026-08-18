@@ -11,34 +11,45 @@ class AnnouncementService {
   /// Real-time stream of all announcements ordered by createdDate descending
   Stream<List<AnnouncementModel>> getAnnouncementsStream() {
     return _announcementsRef
-        .orderBy('createdDate', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => AnnouncementModel.fromFirestore(d)).toList());
+        .map((snap) {
+          final list = snap.docs.map((d) => AnnouncementModel.fromFirestore(d)).toList();
+          list.sort((a, b) => b.publishDate.compareTo(a.publishDate));
+          return list;
+        });
   }
 
-  /// Real-time stream of published, non-expired announcements for a specific Student
-  Stream<List<AnnouncementModel>> getStudentAnnouncementsStream(String studentEmail) {
+  /// Real-time stream of published, non-expired announcements targeted to a Student
+  Stream<List<AnnouncementModel>> getStudentAnnouncementsStream({
+    required String studentEmail,
+    String studentId = '',
+    String programme = '',
+    String batchId = '',
+    List<String> enrolledModuleIds = const [],
+  }) {
     final cleanEmail = studentEmail.trim().toLowerCase();
+
     return _announcementsRef
-        .where('status', isEqualTo: 'published')
         .snapshots()
         .map((snap) {
           final list = snap.docs
               .map((d) => AnnouncementModel.fromFirestore(d))
               .where((a) {
-                // Not expired
-                if (a.effectiveStatus != 'published') return false;
-                // Check audience targeting
-                if (a.audience == 'all_students' || a.audience == 'all_users') {
-                  return true;
-                }
-                if (a.audience == 'specific_student' &&
-                    (a.targetUserEmail?.trim().toLowerCase() == cleanEmail)) {
-                  return true;
-                }
-                return false;
+                // Must be published and not expired
+                if (a.isDraft || a.isExpired) return false;
+
+                // Check targeting criteria
+                return AnnouncementModel.isTargetedToStudent(
+                  announcement: a,
+                  studentId: studentId,
+                  studentEmail: cleanEmail,
+                  programme: programme,
+                  batchId: batchId,
+                  enrolledModuleIds: enrolledModuleIds,
+                );
               })
               .toList();
+
           list.sort((a, b) => b.publishDate.compareTo(a.publishDate));
           return list;
         });
@@ -48,28 +59,38 @@ class AnnouncementService {
   Stream<List<AnnouncementModel>> getLecturerAnnouncementsStream(String lecturerEmail) {
     final cleanEmail = lecturerEmail.trim().toLowerCase();
     return _announcementsRef
-        .where('status', isEqualTo: 'published')
         .snapshots()
         .map((snap) {
           final list = snap.docs
               .map((d) => AnnouncementModel.fromFirestore(d))
               .where((a) {
-                // Not expired
-                if (a.effectiveStatus != 'published') return false;
-                // Check audience targeting
-                if (a.audience == 'all_lecturers' || a.audience == 'all_users') {
+                if (a.isDraft || a.isExpired) return false;
+
+                final aud = a.audience.toLowerCase();
+                if (aud == 'all_lecturers' || aud == 'all_users' || aud == 'everyone' || aud == 'lecturers') {
                   return true;
                 }
-                if (a.audience == 'specific_lecturer' &&
-                    (a.targetUserEmail?.trim().toLowerCase() == cleanEmail)) {
+                if (a.targetUserEmail?.trim().toLowerCase() == cleanEmail || a.createdBy.toLowerCase() == cleanEmail) {
                   return true;
                 }
                 return false;
               })
               .toList();
+
           list.sort((a, b) => b.publishDate.compareTo(a.publishDate));
           return list;
         });
+  }
+
+  /// Mark announcement as read by a student/user
+  Future<void> markAsRead(String docId, String userIdentifier) async {
+    try {
+      await _announcementsRef.doc(docId).update({
+        'readBy': FieldValue.arrayUnion([userIdentifier.trim().toLowerCase()]),
+      });
+    } catch (e) {
+      debugPrint('Error marking announcement as read: $e');
+    }
   }
 
   /// Auto-generate next Announcement ID (e.g. ANN-1001, ANN-1002)
@@ -115,10 +136,7 @@ class AnnouncementService {
     if (announcement.docId == null) return;
     try {
       final data = announcement.toMap();
-      // Record update timestamp if it was published
-      if (announcement.status.toLowerCase() == 'published') {
-        data['updatedAt'] = DateTime.now().toIso8601String();
-      }
+      data['updatedAt'] = DateTime.now().toIso8601String();
       await _announcementsRef.doc(announcement.docId).update(data);
       debugPrint('Announcement updated: ${announcement.docId}');
     } catch (e) {
@@ -130,9 +148,9 @@ class AnnouncementService {
   /// Toggle publish status (Draft <-> Published)
   Future<void> togglePublishStatus(String docId, String currentStatus) async {
     try {
-      final newStatus = currentStatus.toLowerCase() == 'published' ? 'draft' : 'published';
+      final newStatus = currentStatus.toLowerCase() == 'published' ? 'Draft' : 'Published';
       final Map<String, dynamic> updateData = {'status': newStatus};
-      if (newStatus == 'published') {
+      if (newStatus == 'Published') {
         updateData['publishDate'] = DateTime.now().toIso8601String().substring(0, 10);
       }
       await _announcementsRef.doc(docId).update(updateData);
@@ -143,7 +161,7 @@ class AnnouncementService {
     }
   }
 
-  /// Soft deactivate announcement
+  /// Deactivate announcement
   Future<void> deactivateAnnouncement(String docId) async {
     try {
       await _announcementsRef.doc(docId).update({'status': 'deactivated'});
@@ -162,6 +180,17 @@ class AnnouncementService {
     } catch (e) {
       debugPrint('Error reactivating announcement: $e');
       throw Exception('Failed to reactivate announcement: $e');
+    }
+  }
+
+  /// Delete announcement
+  Future<void> deleteAnnouncement(String docId) async {
+    try {
+      await _announcementsRef.doc(docId).delete();
+      debugPrint('Announcement $docId deleted');
+    } catch (e) {
+      debugPrint('Error deleting announcement: $e');
+      throw Exception('Failed to delete announcement: $e');
     }
   }
 }

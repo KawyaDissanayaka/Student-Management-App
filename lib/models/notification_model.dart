@@ -3,95 +3,140 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class NotificationModel {
   final String? docId;
   final String notificationId;
+  final String recipientId; // email or studentId or userId
   final String title;
   final String message;
-  final String type; // 'general' | 'assignment' | 'task' | 'attendance' | 'announcement' | 'system'
+  final String type; // 'Assignment' | 'Task' | 'Attendance' | 'Timetable' | 'Examination' | 'Result' | 'Payment' | 'Announcement' | 'System'
+  final String priority; // 'Normal' | 'Important' | 'Urgent'
+  final String? relatedId; // Assignment ID, Task ID, Payment ID, Exam ID, Announcement ID
+  final String? relatedModuleId; // Subject code e.g. CS101
+  final bool isRead;
+  final String createdAt; // ISO string
+  final String? expiresAt; // ISO string or YYYY-MM-DD
   final String audience; // 'all_students' | 'all_lecturers' | 'all_users' | 'specific_student' | 'specific_lecturer'
   final String? targetUserDocId;
   final String? targetUserName;
   final String? targetUserEmail;
-  final String? targetUserId; // Student ID or Lecturer ID
+  final String? targetUserId;
   final String sentBy;
-  final String sentDate; // ISO timestamp string
-  final String? scheduledDate; // ISO timestamp string if scheduled for future
-  final String createdDate; // ISO timestamp string
-  final String status; // 'sent' | 'scheduled' | 'failed' | 'cancelled'
-  final List<String> readBy; // List of user emails who have marked this notification as read
+  final String sentDate;
+  final String? scheduledDate;
+  final String createdDate;
+  final String status;
+  final List<String> readBy;
 
   NotificationModel({
     this.docId,
     required this.notificationId,
+    String? recipientId,
     required this.title,
     required this.message,
-    this.type = 'general',
-    required this.audience,
+    this.type = 'System',
+    this.priority = 'Normal',
+    this.relatedId,
+    this.relatedModuleId,
+    this.isRead = false,
+    String? createdAt,
+    this.expiresAt,
+    this.audience = 'all_users',
     this.targetUserDocId,
     this.targetUserName,
     this.targetUserEmail,
     this.targetUserId,
-    required this.sentBy,
-    required this.sentDate,
+    this.sentBy = 'System',
+    String? sentDate,
     this.scheduledDate,
-    required this.createdDate,
+    String? createdDate,
     this.status = 'sent',
     this.readBy = const [],
-  });
+  })  : recipientId = recipientId ?? targetUserEmail ?? targetUserId ?? '',
+        createdAt = createdAt ?? createdDate ?? DateTime.now().toIso8601String(),
+        createdDate = createdDate ?? createdAt ?? DateTime.now().toIso8601String(),
+        sentDate = sentDate ?? createdAt ?? DateTime.now().toIso8601String();
 
-  /// Dynamically computes effective status:
-  /// If status is 'scheduled', check if scheduledDate has arrived or passed. If so, return 'sent'.
-  String get effectiveStatus {
-    final s = status.toLowerCase();
-    if (s == 'scheduled' && scheduledDate != null && scheduledDate!.isNotEmpty) {
-      try {
-        final parsed = DateTime.parse(scheduledDate!);
-        if (DateTime.now().isAfter(parsed)) {
-          return 'sent';
-        }
-      } catch (_) {}
+  // Supported notification types
+  static const List<String> supportedTypes = [
+    'Assignment',
+    'Task',
+    'Attendance',
+    'Timetable',
+    'Examination',
+    'Result',
+    'Payment',
+    'Announcement',
+    'System',
+  ];
+
+  /// Automatic expiry check
+  bool get isExpired {
+    if (expiresAt == null || expiresAt!.isEmpty) return false;
+    try {
+      final parsed = DateTime.parse(expiresAt!);
+      final endOfDay = DateTime(parsed.year, parsed.month, parsed.day, 23, 59, 59);
+      return DateTime.now().isAfter(endOfDay);
+    } catch (_) {
+      return false;
     }
-    return s;
   }
 
-  /// Checks if a user (by email) has read this notification
-  bool isReadByUser(String userEmail) {
-    final clean = userEmail.trim().toLowerCase();
-    return readBy.any((email) => email.trim().toLowerCase() == clean);
+  /// Checks if a user (by email or ID) has read this notification
+  bool isReadByUser(String userIdentifier) {
+    if (isRead) return true;
+    final clean = userIdentifier.trim().toLowerCase();
+    return readBy.any((e) => e.trim().toLowerCase() == clean);
   }
 
   Map<String, dynamic> toMap() {
     return {
       'notificationId': notificationId,
+      'recipientId': recipientId,
       'title': title,
       'message': message,
       'type': type,
+      'priority': priority,
+      'relatedId': relatedId,
+      'relatedModuleId': relatedModuleId,
+      'isRead': isRead,
+      'createdAt': createdAt,
+      'createdDate': createdDate,
+      'expiresAt': expiresAt,
       'audience': audience,
       'targetUserDocId': targetUserDocId,
       'targetUserName': targetUserName,
-      'targetUserEmail': targetUserEmail,
-      'targetUserId': targetUserId,
+      'targetUserEmail': targetUserEmail ?? recipientId,
+      'targetUserId': targetUserId ?? recipientId,
       'sentBy': sentBy,
       'sentDate': sentDate,
       'scheduledDate': scheduledDate,
-      'createdDate': createdDate,
       'status': status,
       'readBy': readBy,
     };
   }
 
-  factory NotificationModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? {};
+  factory NotificationModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    final recId = data['recipientId'] ?? data['targetUserEmail'] ?? data['targetUserId'] ?? '';
+    final isR = data['isRead'] == true;
+
     return NotificationModel(
       docId: doc.id,
-      notificationId: data['notificationId'] ?? '',
+      notificationId: data['notificationId'] ?? doc.id,
+      recipientId: recId,
       title: data['title'] ?? '',
-      message: data['message'] ?? '',
-      type: data['type'] ?? 'general',
+      message: data['message'] ?? (data['body'] ?? ''),
+      type: data['type'] ?? 'System',
+      priority: data['priority'] ?? 'Normal',
+      relatedId: data['relatedId'],
+      relatedModuleId: data['relatedModuleId'] ?? data['subjectCode'],
+      isRead: isR,
+      createdAt: data['createdAt'] ?? (data['createdDate'] ?? ''),
+      expiresAt: data['expiresAt'],
       audience: data['audience'] ?? 'all_users',
       targetUserDocId: data['targetUserDocId'],
       targetUserName: data['targetUserName'],
       targetUserEmail: data['targetUserEmail'],
       targetUserId: data['targetUserId'],
-      sentBy: data['sentBy'] ?? 'Admin',
+      sentBy: data['sentBy'] ?? 'System',
       sentDate: data['sentDate'] ?? '',
       scheduledDate: data['scheduledDate'],
       createdDate: data['createdDate'] ?? '',
@@ -101,61 +146,33 @@ class NotificationModel {
   }
 
   factory NotificationModel.fromMap(Map<String, dynamic> map, {String? id}) {
+    final recId = map['recipientId'] ?? map['targetUserEmail'] ?? map['targetUserId'] ?? '';
+    final isR = map['isRead'] == true;
+
     return NotificationModel(
       docId: id,
       notificationId: map['notificationId'] ?? '',
+      recipientId: recId,
       title: map['title'] ?? '',
-      message: map['message'] ?? '',
-      type: map['type'] ?? 'general',
+      message: map['message'] ?? (map['body'] ?? ''),
+      type: map['type'] ?? 'System',
+      priority: map['priority'] ?? 'Normal',
+      relatedId: map['relatedId'],
+      relatedModuleId: map['relatedModuleId'] ?? map['subjectCode'],
+      isRead: isR,
+      createdAt: map['createdAt'] ?? (map['createdDate'] ?? ''),
+      expiresAt: map['expiresAt'],
       audience: map['audience'] ?? 'all_users',
       targetUserDocId: map['targetUserDocId'],
       targetUserName: map['targetUserName'],
       targetUserEmail: map['targetUserEmail'],
       targetUserId: map['targetUserId'],
-      sentBy: map['sentBy'] ?? 'Admin',
+      sentBy: map['sentBy'] ?? 'System',
       sentDate: map['sentDate'] ?? '',
       scheduledDate: map['scheduledDate'],
       createdDate: map['createdDate'] ?? '',
       status: map['status'] ?? 'sent',
       readBy: List<String>.from(map['readBy'] ?? []),
-    );
-  }
-
-  NotificationModel copyWith({
-    String? docId,
-    String? notificationId,
-    String? title,
-    String? message,
-    String? type,
-    String? audience,
-    String? targetUserDocId,
-    String? targetUserName,
-    String? targetUserEmail,
-    String? targetUserId,
-    String? sentBy,
-    String? sentDate,
-    String? scheduledDate,
-    String? createdDate,
-    String? status,
-    List<String>? readBy,
-  }) {
-    return NotificationModel(
-      docId: docId ?? this.docId,
-      notificationId: notificationId ?? this.notificationId,
-      title: title ?? this.title,
-      message: message ?? this.message,
-      type: type ?? this.type,
-      audience: audience ?? this.audience,
-      targetUserDocId: targetUserDocId ?? this.targetUserDocId,
-      targetUserName: targetUserName ?? this.targetUserName,
-      targetUserEmail: targetUserEmail ?? this.targetUserEmail,
-      targetUserId: targetUserId ?? this.targetUserId,
-      sentBy: sentBy ?? this.sentBy,
-      sentDate: sentDate ?? this.sentDate,
-      scheduledDate: scheduledDate ?? this.scheduledDate,
-      createdDate: createdDate ?? this.createdDate,
-      status: status ?? this.status,
-      readBy: readBy ?? this.readBy,
     );
   }
 }
