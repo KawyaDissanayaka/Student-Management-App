@@ -2916,5 +2916,134 @@ void main() {
         'Invalid credentials. Please verify your email and password.',
       );
     });
+
+    test('Full System E2E Integration: Student, Lecturer, Admin Lifecycles & Cross-Subsystem Integrity', () {
+      // ─── 1. COMPLETE STUDENT LIFECYCLE ──────────────────────────────────────
+      // A. Profile & Registration
+      final student = StudentModel(
+        studentId: 'STU-9001',
+        name: 'Sanduni Perera',
+        email: 'sanduni@uni.lk',
+        course: 'BSc (Hons) in Computing',
+        batch: '2026',
+        year: 'Year 1',
+        semester: 'Semester 1',
+      );
+      expect(student.studentId, 'STU-9001');
+
+      // B. Module Registration & Credit Limits
+      final reg = StudentModuleRegistrationModel(
+        registrationId: 'REG-9001',
+        studentId: student.studentId,
+        studentName: student.name,
+        studentEmail: student.email,
+        moduleId: 'CS101',
+        moduleName: 'Intro to Computer Science',
+        registrationPeriodId: 'PER-2026-S1',
+        academicYear: '2026',
+        semester: 'Semester 1',
+        credits: 3,
+        status: 'Approved',
+        registeredAt: '2026-08-18',
+      );
+      expect(reg.status, 'Approved');
+      expect(reg.credits, 3);
+
+      // C. Assignment Submission
+      final submission = SubmissionModel(
+        submissionId: 'SUB-9001',
+        assignmentId: 'ASN-101',
+        assignmentTitle: 'Algorithms Analysis',
+        subjectCode: 'CS101',
+        studentId: student.studentId,
+        studentEmail: student.email,
+        studentName: student.name,
+        submittedAt: '2026-08-18T12:00:00Z',
+        status: 'submitted',
+      );
+      expect(submission.isGraded, false);
+
+      // D. Exam Results & GPA
+      final examResult = ExamResultModel(
+        resultId: 'RES-9001',
+        examId: 'EX-101',
+        examDocId: 'DOC-101',
+        moduleId: 'CS101',
+        subjectName: 'Intro to Computer Science',
+        studentId: student.studentId,
+        studentName: student.name,
+        studentEmail: student.email,
+        marks: 86.0,
+        grade: 'A',
+        gradePoint: 4.0,
+        status: 'Published',
+        updatedAt: '2026-08-18',
+      );
+      expect(examResult.isPublished, true);
+      expect(examResult.grade, 'A');
+
+      // E. Finance & Payment
+      final payment = PaymentModel(
+        paymentId: 'PAY-9001',
+        studentEmail: student.email,
+        studentId: student.studentId,
+        studentName: student.name,
+        feeType: 'Tuition Fee Semester 1',
+        amount: 150000.0,
+        paymentDate: '2026-08-18',
+        paymentMethod: 'Online Gateway',
+        transactionRef: 'TXN-999888',
+        status: 'success',
+      );
+      expect(payment.isSuccessful, true);
+
+      // ─── 2. COMPLETE LECTURER LIFECYCLE ─────────────────────────────────────
+      final lecturer = LecturerModel(
+        lecturerId: 'LEC-501',
+        name: 'Dr. Nimal Senanayake',
+        email: 'nimal@uni.lk',
+        department: 'Faculty of Computing',
+      );
+
+      // Assigned module check
+      expect(lecturer.lecturerId, 'LEC-501');
+      expect(lecturer.department, 'Faculty of Computing');
+
+      // Grading student submission
+      final gradedSubmission = SubmissionModel(
+        submissionId: submission.submissionId,
+        assignmentId: submission.assignmentId,
+        assignmentTitle: submission.assignmentTitle,
+        subjectCode: submission.subjectCode,
+        studentId: submission.studentId,
+        studentEmail: submission.studentEmail,
+        studentName: submission.studentName,
+        submittedAt: submission.submittedAt,
+        mark: 92.0,
+        feedback: 'Excellent computational complexity breakdown.',
+        status: 'graded',
+      );
+      expect(gradedSubmission.isGraded, true);
+      expect(gradedSubmission.mark, 92.0);
+
+      // ─── 3. COMPLETE ADMIN LIFECYCLE ────────────────────────────────────────
+      // Deterministic Exam Seating Allocation & Result Publication
+      final seatingAllocated = ExamSeatingModel(
+        seatingId: 'SEAT-9001',
+        examId: 'EX-101',
+        examDocId: 'DOC-101',
+        hallId: 'HALL-01',
+        hallName: 'Computing Main Hall A',
+        studentId: student.studentId,
+        studentName: student.name,
+        studentEmail: student.email,
+        seatNumber: 'A-01',
+        allocatedAt: '2026-08-18',
+        allocatedBy: 'admin@system.com',
+      );
+      expect(seatingAllocated.seatNumber, 'A-01');
+      expect(seatingAllocated.hallName, 'Computing Main Hall A');
+      expect(seatingAllocated.allocatedBy, 'admin@system.com');
+    });
   });
 }

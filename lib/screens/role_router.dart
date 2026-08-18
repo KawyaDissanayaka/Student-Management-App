@@ -56,7 +56,7 @@ class _RoleRouterScreenState extends State<RoleRouterScreen> {
         final data = snapshot.data?.data();
         final rawRole = data?['role']?.toString().toUpperCase() ?? 'STUDENT';
 
-        if (rawRole == 'ADMIN') {
+        if (rawRole == 'ADMIN' || rawRole == 'FINANCESTAFF' || rawRole == 'FINANCE_STAFF' || rawRole == 'LIBRARYSTAFF' || rawRole == 'LIBRARY_STAFF') {
           return AdminDashboardScreen(userData: data);
         } else if (rawRole == 'LECTURER') {
           return LecturerDashboardScreen(userData: data);
