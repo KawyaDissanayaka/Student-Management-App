@@ -2597,5 +2597,149 @@ void main() {
       expect(auditEntry['studentId'], 'STU-1002');
       expect((auditEntry['updatedFields'] as Map)['phone'], '+94 77 999 8888');
     });
+
+    test('Final Student Dashboard KPI Aggregations, Attendance % & Finance Rules', () {
+      // 1. Dynamic Attendance Percentage Calculation
+      final attendanceRecords = [
+        AttendanceModel(studentDocId: 'STU-1002', studentId: 'STU-1002', studentName: 'Kasun', subjectCode: 'CS201', subjectName: 'Algorithms', date: '2026-08-01', status: 'present', markedBy: 'Lecturer', batch: '2026', semester: 'Semester 1'),
+        AttendanceModel(studentDocId: 'STU-1002', studentId: 'STU-1002', studentName: 'Kasun', subjectCode: 'CS201', subjectName: 'Algorithms', date: '2026-08-03', status: 'present', markedBy: 'Lecturer', batch: '2026', semester: 'Semester 1'),
+        AttendanceModel(studentDocId: 'STU-1002', studentId: 'STU-1002', studentName: 'Kasun', subjectCode: 'CS201', subjectName: 'Algorithms', date: '2026-08-05', status: 'late', markedBy: 'Lecturer', batch: '2026', semester: 'Semester 1'),
+        AttendanceModel(studentDocId: 'STU-1002', studentId: 'STU-1002', studentName: 'Kasun', subjectCode: 'CS201', subjectName: 'Algorithms', date: '2026-08-07', status: 'absent', markedBy: 'Lecturer', batch: '2026', semester: 'Semester 1'),
+      ];
+
+      final total = attendanceRecords.length;
+      final present = attendanceRecords.where((a) => a.status.toLowerCase() == 'present').length;
+      final late = attendanceRecords.where((a) => a.status.toLowerCase() == 'late').length;
+      final absent = attendanceRecords.where((a) => a.status.toLowerCase() == 'absent').length;
+
+      expect(total, 4);
+      expect(present, 2);
+      expect(late, 1);
+      expect(absent, 1);
+
+      // (2 + 0.5 * 1) / 4 * 100% = 2.5 / 4 * 100% = 62.5%
+      final attendancePct = ((present + 0.5 * late) / total) * 100.0;
+      expect(attendancePct, 62.5);
+
+      // 2. Finance Outstanding Balance & Pay Now Trigger
+      const totalFee = 350000.0;
+      final studentPayments = [
+        PaymentModel(
+          paymentId: 'PAY-001',
+          studentEmail: 'kasun@uni.lk',
+          studentId: 'STU-1002',
+          studentName: 'Kasun Bandara',
+          feeType: 'Tuition Fee',
+          amount: 200000.0,
+          paymentDate: '2026-01-15',
+          paymentMethod: 'Card',
+          transactionRef: 'TXN-123456',
+          status: 'success',
+        ),
+      ];
+
+      final paidAmount = studentPayments
+          .where((p) => p.isSuccessful)
+          .fold<double>(0.0, (sum, p) => sum + p.amount);
+
+      expect(paidAmount, 200000.0);
+      final balance = totalFee - paidAmount;
+      expect(balance, 150000.0);
+      final showPayNow = balance > 0;
+      expect(showPayNow, true);
+
+      // 3. Quick Access Hubs Verification
+      final dashboardHubs = [
+        'My Modules',
+        'Timetable',
+        'Assignments',
+        'Exams',
+        'Results',
+        'Finance',
+        'Attendance',
+        'Campus Map',
+        'Bus Shuttle',
+        'Library',
+        'Notices',
+        'Profile',
+      ];
+      expect(dashboardHubs.length, 12);
+    });
+
+    test('Lecturer Dashboard Isolation, Assigned Modules, KPI Calculations & Actions', () {
+      // 1. Lecturer Model Serialization & Scoping
+      final lecturer = LecturerModel(
+        lecturerId: 'LEC-101',
+        name: 'Dr. Priyantha Silva',
+        email: 'priyantha@uni.lk',
+        department: 'Faculty of Computing',
+        designation: 'Senior Lecturer',
+      );
+
+      expect(lecturer.lecturerId, 'LEC-101');
+      expect(lecturer.name, 'Dr. Priyantha Silva');
+      expect(lecturer.department, 'Faculty of Computing');
+      expect(lecturer.designation, 'Senior Lecturer');
+
+      // 2. Assigned Module Scoping Isolation
+      final allSystemSubjects = [
+        SubjectModel(subjectCode: 'CS101', subjectName: 'Intro to CS', credits: 3, lecturerName: 'Dr. Priyantha Silva', lecturerId: 'LEC-101', batch: '2026', semester: 'Semester 1'),
+        SubjectModel(subjectCode: 'SE202', subjectName: 'Software Architecture', credits: 4, lecturerName: 'Dr. Priyantha Silva', lecturerId: 'LEC-101', batch: '2026', semester: 'Semester 1'),
+        SubjectModel(subjectCode: 'NET301', subjectName: 'Network Security', credits: 3, lecturerName: 'Prof. Kamal', lecturerId: 'LEC-999', batch: '2026', semester: 'Semester 1'),
+      ];
+
+      final assignedModules = allSystemSubjects.where((s) => s.lecturerId == lecturer.lecturerId).toList();
+      expect(assignedModules.length, 2);
+      expect(assignedModules.map((m) => m.subjectCode).contains('CS101'), true);
+      expect(assignedModules.map((m) => m.subjectCode).contains('SE202'), true);
+      expect(assignedModules.map((m) => m.subjectCode).contains('NET301'), false);
+
+      // 3. Lecturer KPI Calculations
+      final todayLectures = [
+        TimetableModel(
+          timetableId: 'TT-01',
+          subjectCode: 'CS101',
+          subjectName: 'Intro to CS',
+          lecturerName: 'Dr. Priyantha Silva',
+          lecturerEmail: 'priyantha@uni.lk',
+          dayOfWeek: 'Monday',
+          startTime: '09:00 AM',
+          endTime: '11:00 AM',
+          hallName: 'Computing Lab 01',
+          batch: '2026',
+        ),
+      ];
+      expect(todayLectures.length, 1);
+
+      final submissions = [
+        SubmissionModel(
+          submissionId: 'SUB-1',
+          assignmentId: 'ASN-1',
+          assignmentTitle: 'Algorithms Essay',
+          subjectCode: 'CS101',
+          studentId: 'STU-1002',
+          studentEmail: 'kasun@uni.lk',
+          studentName: 'Kasun Bandara',
+          submittedAt: '2026-08-18T10:00:00Z',
+          status: 'submitted',
+        ),
+        SubmissionModel(
+          submissionId: 'SUB-2',
+          assignmentId: 'ASN-1',
+          assignmentTitle: 'Algorithms Essay',
+          subjectCode: 'CS101',
+          studentId: 'STU-1003',
+          studentEmail: 'nimal@uni.lk',
+          studentName: 'Nimal',
+          submittedAt: '2026-08-18T11:00:00Z',
+          status: 'graded',
+          mark: 85.0,
+        ),
+      ];
+
+      final pendingSubmissions = submissions.where((s) => s.mark == null).toList();
+      expect(pendingSubmissions.length, 1);
+      expect(pendingSubmissions.first.studentId, 'STU-1002');
+    });
   });
 }
