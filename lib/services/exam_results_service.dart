@@ -218,7 +218,6 @@ class ExamResultsService {
     final timestamp = DateTime.now().toIso8601String();
 
     for (final doc in querySnap.docs) {
-      final data = doc.data();
       final resultModel = ExamResultModel.fromFirestore(doc);
 
       // 1. Lock & mark as Published in exam_results

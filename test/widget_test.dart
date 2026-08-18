@@ -16,6 +16,7 @@ import 'package:student_management_app/models/exam_model.dart';
 import 'package:student_management_app/models/exam_registration_model.dart';
 import 'package:student_management_app/models/exam_seating_model.dart';
 import 'package:student_management_app/models/exam_attendance_record_model.dart';
+import 'package:student_management_app/models/exam_result_model.dart';
 import 'package:student_management_app/services/exam_hall_service.dart';
 import 'package:student_management_app/services/exam_seating_service.dart';
 import 'package:student_management_app/services/student_portal_service.dart';
@@ -805,6 +806,100 @@ void main() {
       expect(isAlreadyMarkedPresent('STU-1001', 'EXM-101'), true); // Duplicate!
       expect(isAlreadyMarkedPresent('STU-1002', 'EXM-101'), false); // Eligible to mark
       expect(isAlreadyMarkedPresent('STU-1001', 'EXM-102'), false); // Eligible different exam
+    });
+
+    test('Exam Result Model Serialization & Attributes', () {
+      final result = ExamResultModel(
+        resultId: 'EXRES-001',
+        examId: 'EXM-101',
+        examDocId: 'doc_101',
+        moduleId: 'CS201',
+        subjectName: 'Cloud Computing',
+        studentId: 'STU-1001',
+        studentName: 'Alice Johnson',
+        studentEmail: 'alice@uni.lk',
+        marks: 88.5,
+        maxMarks: 100.0,
+        grade: 'A',
+        gradePoint: 4.0,
+        status: 'Draft',
+        isAbsent: false,
+        submittedBy: 'lecturer@uni.lk',
+        updatedAt: '2026-08-18T10:00:00',
+      );
+
+      expect(result.resultId, 'EXRES-001');
+      expect(result.moduleId, 'CS201');
+      expect(result.marks, 88.5);
+      expect(result.grade, 'A');
+      expect(result.gradePoint, 4.0);
+      expect(result.isDraft, true);
+      expect(result.isPublished, false);
+
+      final map = result.toMap();
+      expect(map['marks'], 88.5);
+      expect(map['grade'], 'A');
+      expect(map['studentId'], 'STU-1001');
+    });
+
+    test('Dynamic Grading & Grade Point Calculation with Configurable Boundaries', () {
+      // 1. A+ (90 - 100)
+      final resAplus = ExamResultModel.calculateGradeAndPoint(marks: 95.0, isAbsent: false);
+      expect(resAplus['grade'], 'A+');
+      expect(resAplus['gradePoint'], 4.0);
+
+      // 2. B+ (70 - 74.99)
+      final resBplus = ExamResultModel.calculateGradeAndPoint(marks: 72.0, isAbsent: false);
+      expect(resBplus['grade'], 'B+');
+      expect(resBplus['gradePoint'], 3.3);
+
+      // 3. C (50 - 54.99)
+      final resC = ExamResultModel.calculateGradeAndPoint(marks: 52.5, isAbsent: false);
+      expect(resC['grade'], 'C');
+      expect(resC['gradePoint'], 2.0);
+
+      // 4. Fail / E (< 35)
+      final resE = ExamResultModel.calculateGradeAndPoint(marks: 25.0, isAbsent: false);
+      expect(resE['grade'], 'E');
+      expect(resE['gradePoint'], 0.0);
+
+      // 5. Absent Student University Rule: Marks = 0, Grade = 'AB', GP = 0.0
+      final resAbsent = ExamResultModel.calculateGradeAndPoint(marks: 100.0, isAbsent: true);
+      expect(resAbsent['grade'], 'AB');
+      expect(resAbsent['gradePoint'], 0.0);
+    });
+
+    test('Exam Results Workflow & Student Portal Visibility Rules', () {
+      // Results in different lifecycle states
+      final draftResult = ExamResultModel(
+        resultId: 'R1', examId: 'E1', examDocId: 'd1', moduleId: 'CS101', subjectName: 'Intro', studentId: 'S1', studentName: 'S1', studentEmail: 's1@uni.lk', marks: 80, grade: 'A', gradePoint: 4.0, status: 'Draft', updatedAt: '',
+      );
+      final submittedResult = ExamResultModel(
+        resultId: 'R2', examId: 'E1', examDocId: 'd1', moduleId: 'CS101', subjectName: 'Intro', studentId: 'S1', studentName: 'S1', studentEmail: 's1@uni.lk', marks: 80, grade: 'A', gradePoint: 4.0, status: 'Submitted', updatedAt: '',
+      );
+      final approvedResult = ExamResultModel(
+        resultId: 'R3', examId: 'E1', examDocId: 'd1', moduleId: 'CS101', subjectName: 'Intro', studentId: 'S1', studentName: 'S1', studentEmail: 's1@uni.lk', marks: 80, grade: 'A', gradePoint: 4.0, status: 'Approved', updatedAt: '',
+      );
+      final publishedResult = ExamResultModel(
+        resultId: 'R4', examId: 'E1', examDocId: 'd1', moduleId: 'CS101', subjectName: 'Intro', studentId: 'S1', studentName: 'S1', studentEmail: 's1@uni.lk', marks: 80, grade: 'A', gradePoint: 4.0, status: 'Published', updatedAt: '',
+      );
+
+      // Lifecycle status checks
+      expect(draftResult.isDraft, true);
+      expect(submittedResult.isSubmitted, true);
+      expect(approvedResult.isApproved, true);
+      expect(publishedResult.isPublished, true);
+      expect(publishedResult.isLocked, true); // Published results are locked
+
+      // Student Portal Visibility Rule: Only Published results are visible!
+      final allResults = [draftResult, submittedResult, approvedResult, publishedResult];
+      final visibleToStudents = allResults.where((r) => r.isPublished).toList();
+
+      expect(visibleToStudents.length, 1);
+      expect(visibleToStudents.first.resultId, 'R4');
+      expect(visibleToStudents.any((r) => r.status == 'Draft'), false);
+      expect(visibleToStudents.any((r) => r.status == 'Submitted'), false);
+      expect(visibleToStudents.any((r) => r.status == 'Approved'), false);
     });
   });
 }
