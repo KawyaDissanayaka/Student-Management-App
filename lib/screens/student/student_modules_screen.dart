@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/enrollment_service.dart';
 import '../../models/enrollment_model.dart';
 import 'module_detail_screen.dart';
+import 'student_module_registration_screen.dart';
 
 class StudentModulesScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -33,6 +34,20 @@ class _StudentModulesScreenState extends State<StudentModulesScreen> {
             Text('My Enrolled Modules', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StudentModuleRegistrationScreen(userData: widget.userData),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add_task_rounded, color: Colors.tealAccent, size: 16),
+            label: const Text('Register', style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+        ],
       ),
       body: Column(
         children: [

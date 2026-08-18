@@ -18,6 +18,7 @@ import 'package:student_management_app/models/exam_seating_model.dart';
 import 'package:student_management_app/models/exam_attendance_record_model.dart';
 import 'package:student_management_app/models/exam_result_model.dart';
 import 'package:student_management_app/models/fee_structure_model.dart';
+import 'package:student_management_app/models/module_registration_period_model.dart';
 import 'package:student_management_app/services/exam_hall_service.dart';
 import 'package:student_management_app/services/exam_seating_service.dart';
 import 'package:student_management_app/services/exam_reports_service.dart';
@@ -1286,6 +1287,81 @@ void main() {
 
       expect(refundedPayment.isRefunded, true);
       expect(refundedPayment.refundedAt, '2026-08-18T14:30:00');
+    });
+
+    test('Module Registration Period Attributes, Credit Limits & Validation Rules', () {
+      // 1. Model Attributes & Supported Types
+      final period = ModuleRegistrationPeriodModel(
+        periodId: 'MRP-2026-S1-001',
+        academicYear: '2025/2026',
+        semester: 'Semester 1',
+        programme: 'BSc (Hons) in Computing',
+        batchId: '2026',
+        registrationStartDate: '2026-08-01',
+        registrationEndDate: '2026-08-31',
+        minimumCredits: 12,
+        maximumCredits: 24,
+        maximumModules: 6,
+        status: 'Open',
+        offeredModuleCodes: ['CS101', 'CS102', 'CS103'],
+        offeredModuleTypes: {'CS101': 'Core', 'CS102': 'Core', 'CS103': 'Elective'},
+        createdAt: '2026-08-01',
+        updatedAt: '2026-08-01',
+      );
+
+      expect(period.periodId, 'MRP-2026-S1-001');
+      expect(period.isOpen, true);
+      expect(period.isDraft, false);
+      expect(period.isClosed, false);
+      expect(period.offeredModuleCodes.length, 3);
+      expect(period.offeredModuleTypes['CS103'], 'Elective');
+      expect(ModuleRegistrationPeriodModel.supportedModuleTypes.contains('Core'), true);
+      expect(ModuleRegistrationPeriodModel.supportedModuleTypes.contains('Elective'), true);
+      expect(ModuleRegistrationPeriodModel.supportedModuleTypes.contains('Optional'), true);
+
+      // 2. Validation: maxCredits < minCredits is rejected
+      final invalidCreditError = ModuleRegistrationPeriodModel.validatePeriod(
+        academicYear: '2025/2026',
+        semester: 'Semester 1',
+        programme: 'BSc Computing',
+        batchId: '2026',
+        startDate: '2026-08-01',
+        endDate: '2026-08-31',
+        minCredits: 20,
+        maxCredits: 10,
+        maxModules: 5,
+      );
+      expect(invalidCreditError != null, true);
+      expect(invalidCreditError!.contains('cannot be less than minimum credits'), true);
+
+      // 3. Validation: startDate > endDate is rejected
+      final invalidDateError = ModuleRegistrationPeriodModel.validatePeriod(
+        academicYear: '2025/2026',
+        semester: 'Semester 1',
+        programme: 'BSc Computing',
+        batchId: '2026',
+        startDate: '2026-08-31',
+        endDate: '2026-08-01',
+        minCredits: 12,
+        maxCredits: 24,
+        maxModules: 5,
+      );
+      expect(invalidDateError != null, true);
+      expect(invalidDateError!.contains('Start Date cannot be after End Date'), true);
+
+      // 4. Validation: valid period configuration passes
+      final validResult = ModuleRegistrationPeriodModel.validatePeriod(
+        academicYear: '2025/2026',
+        semester: 'Semester 1',
+        programme: 'BSc Computing',
+        batchId: '2026',
+        startDate: '2026-08-01',
+        endDate: '2026-08-31',
+        minCredits: 12,
+        maxCredits: 24,
+        maxModules: 6,
+      );
+      expect(validResult, null);
     });
   });
 }

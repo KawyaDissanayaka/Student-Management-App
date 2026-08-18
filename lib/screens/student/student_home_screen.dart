@@ -18,6 +18,7 @@ import 'student_results_screen.dart';
 import 'student_credits_screen.dart';
 import 'student_payments_screen.dart';
 import 'student_registration_screen.dart';
+import 'student_module_registration_screen.dart';
 import 'student_support_screen.dart';
 import 'campus_facilities_screen.dart';
 import 'campus_map_screen.dart';
@@ -344,6 +345,9 @@ class StudentHomeScreen extends StatelessWidget {
                                           }),
                                           _buildServiceTile('Registration', Icons.how_to_reg_rounded, Colors.cyanAccent, () {
                                             Navigator.push(context, MaterialPageRoute(builder: (context) => StudentRegistrationScreen(userData: userData)));
+                                          }),
+                                          _buildServiceTile('Module Reg', Icons.app_registration_rounded, Colors.tealAccent, () {
+                                            Navigator.push(context, MaterialPageRoute(builder: (context) => StudentModuleRegistrationScreen(userData: userData)));
                                           }),
                                           _buildServiceTile('Notices', Icons.campaign_rounded, Colors.pinkAccent, () {
                                             Navigator.push(context, MaterialPageRoute(builder: (context) => UserAnnouncementsScreen(userEmail: email, userName: name, userRole: 'Student')));
