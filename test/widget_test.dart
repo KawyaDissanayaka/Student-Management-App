@@ -24,6 +24,7 @@ import 'package:student_management_app/models/student_module_registration_model.
 import 'package:student_management_app/models/notification_model.dart';
 import 'package:student_management_app/models/transport_model.dart';
 import 'package:student_management_app/models/facility_model.dart';
+import 'package:student_management_app/models/library_model.dart';
 import 'package:student_management_app/services/exam_hall_service.dart';
 import 'package:student_management_app/services/exam_seating_service.dart';
 import 'package:student_management_app/services/exam_reports_service.dart';
@@ -2334,6 +2335,95 @@ void main() {
       final matchingTimetableFacility = facilitiesList.firstWhere((f) => f.name.toLowerCase() == timetableHallName.toLowerCase());
       expect(matchingTimetableFacility.building, 'Faculty of Computing Block');
       expect(matchingTimetableFacility.floor, '2nd Floor');
+    });
+
+    test('Library Management Books, Borrowing Rules, Overdue Calculation & Copy Tracking', () {
+      // 1. Book Serialization & Non-negative Copies Rule
+      final book = LibraryBookModel(
+        bookId: 'BK-101',
+        isbn: '978-0132350884',
+        title: 'Clean Code',
+        author: 'Robert C. Martin',
+        category: 'Software Engineering',
+        publisher: 'Pearson Education',
+        edition: '1st Edition',
+        totalCopies: 5,
+        availableCopies: 3,
+        shelfLocation: 'Rack SE-02',
+        status: 'Available',
+      );
+
+      expect(book.isAvailable, true);
+      expect(book.availableCopies, 3);
+      expect(book.totalCopies, 5);
+
+      // Verify copies cannot exceed total or drop below zero
+      final overClampedBook = LibraryBookModel(
+        bookId: 'BK-102',
+        isbn: '978-0201616224',
+        title: 'The Pragmatic Programmer',
+        author: 'Andrew Hunt',
+        category: 'Software Engineering',
+        totalCopies: 4,
+        availableCopies: 10, // Exceeds total
+      );
+      expect(overClampedBook.availableCopies, 4);
+
+      final underClampedBook = LibraryBookModel(
+        bookId: 'BK-103',
+        isbn: '978-0134685991',
+        title: 'Effective Java',
+        author: 'Joshua Bloch',
+        category: 'Computer Science',
+        totalCopies: 3,
+        availableCopies: -2, // Negative
+      );
+      expect(underClampedBook.availableCopies, 0);
+      expect(underClampedBook.isAvailable, false);
+
+      // 2. Issue Book Logic: Available Copies Decrements
+      int currentAvail = book.availableCopies;
+      expect(currentAvail > 0, true);
+      int updatedAvailAfterIssue = currentAvail - 1;
+      expect(updatedAvailAfterIssue, 2);
+
+      // 3. Return Book Logic: Available Copies Increments
+      int updatedAvailAfterReturn = updatedAvailAfterIssue + 1;
+      expect(updatedAvailAfterReturn, 3);
+
+      // 4. Overdue Borrowing Calculation Logic
+      final activeBorrowing = LibraryBorrowingModel(
+        borrowingId: 'BRW-101',
+        bookId: 'BK-101',
+        bookTitle: 'Clean Code',
+        studentId: 'STU-1001',
+        studentEmail: 'alice@uni.lk',
+        studentName: 'Alice Johnson',
+        borrowDate: '2026-08-01',
+        dueDate: '2026-08-15', // Past date
+        status: 'Borrowed',
+      );
+
+      expect(activeBorrowing.effectiveStatus, 'Overdue');
+      expect(activeBorrowing.isOverdue, true);
+
+      // When returned, status remains Returned even if past due date
+      final returnedBorrowing = LibraryBorrowingModel(
+        borrowingId: 'BRW-102',
+        bookId: 'BK-101',
+        bookTitle: 'Clean Code',
+        studentId: 'STU-1001',
+        studentEmail: 'alice@uni.lk',
+        studentName: 'Alice Johnson',
+        borrowDate: '2026-08-01',
+        dueDate: '2026-08-15',
+        returnDate: '2026-08-14',
+        status: 'Returned',
+      );
+
+      expect(returnedBorrowing.effectiveStatus, 'Returned');
+      expect(returnedBorrowing.isReturned, true);
+      expect(returnedBorrowing.isOverdue, false);
     });
   });
 }

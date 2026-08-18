@@ -23,6 +23,7 @@ import 'student_support_screen.dart';
 import 'campus_facilities_screen.dart';
 import 'campus_map_screen.dart';
 import 'campus_transport_screen.dart';
+import 'student_library_screen.dart';
 import 'student_settings_screen.dart';
 import '../user_announcements_screen.dart';
 import '../user_notifications_screen.dart';
@@ -447,6 +448,9 @@ class StudentHomeScreen extends StatelessWidget {
                                           }),
                                           _buildServiceTile('Facilities', Icons.apartment_rounded, Colors.lightBlueAccent, () {
                                             Navigator.push(context, MaterialPageRoute(builder: (context) => const CampusFacilitiesScreen()));
+                                          }),
+                                          _buildServiceTile('Library', Icons.local_library_rounded, Colors.purpleAccent, () {
+                                            Navigator.push(context, MaterialPageRoute(builder: (context) => StudentLibraryScreen(userData: userData)));
                                           }),
                                           _buildServiceTile('Helpdesk', Icons.support_agent_rounded, Colors.redAccent, () {
                                             Navigator.push(context, MaterialPageRoute(builder: (context) => const StudentSupportScreen()));
