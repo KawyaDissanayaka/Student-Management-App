@@ -114,7 +114,8 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
                   return s.name.toLowerCase().contains(q) ||
                       s.email.toLowerCase().contains(q) ||
                       s.studentId.toLowerCase().contains(q) ||
-                      s.course.toLowerCase().contains(q);
+                      s.course.toLowerCase().contains(q) ||
+                      s.batch.toLowerCase().contains(q);
                 }).toList();
 
                 if (filteredStudents.isEmpty) {
@@ -173,6 +174,7 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        onTap: () => _showStudentInspector(context, student),
         leading: CircleAvatar(
           radius: 24,
           backgroundColor: Colors.teal.withAlpha(40),
@@ -199,7 +201,7 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
             ),
             const SizedBox(height: 2),
             Text(
-              '${student.batch} • ${student.year} (${student.semester})',
+              'Batch: ${student.batch} • ${student.year} (${student.semester})',
               style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
             Text(
@@ -213,6 +215,69 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
           tooltip: 'Delete Student',
           onPressed: () => _confirmDelete(context, student),
         ),
+      ),
+    );
+  }
+
+  void _showStudentInspector(BuildContext context, StudentModel student) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.teal,
+                      child: Icon(Icons.person, color: Colors.white, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(student.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(student.studentId, style: const TextStyle(color: Colors.tealAccent, fontSize: 12, fontFamily: 'monospace')),
+                      ],
+                    ),
+                  ],
+                ),
+                IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () => Navigator.pop(ctx)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 10),
+
+            _buildDetailRow('Email', student.email),
+            _buildDetailRow('Degree Programme', student.course),
+            _buildDetailRow('Batch', student.batch),
+            _buildDetailRow('Current Stage', '${student.year} • ${student.semester}'),
+            _buildDetailRow('Enrollment Status', student.status.toUpperCase()),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String val) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          Text(val, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+        ],
       ),
     );
   }

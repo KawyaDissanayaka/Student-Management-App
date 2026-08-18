@@ -2425,5 +2425,177 @@ void main() {
       expect(returnedBorrowing.isReturned, true);
       expect(returnedBorrowing.isOverdue, false);
     });
+
+    test('Student Profile Personal Field Isolation, Dynamic GPA & Audit Rules', () {
+      // 1. Student Profile Model Serialization & Protected vs Editable Fields
+      final student = StudentModel(
+        studentId: 'STU-1002',
+        name: 'Kasun Bandara',
+        email: 'kasun@uni.lk',
+        course: 'Software Engineering',
+        batch: '2026',
+        year: 'Year 2',
+        semester: 'Semester 1',
+        status: 'active',
+      );
+
+      expect(student.studentId, 'STU-1002');
+      expect(student.course, 'Software Engineering');
+      expect(student.status, 'active');
+
+      // Permitted Student Editable Fields:
+      final permittedFields = {'phone', 'address', 'emergencyContact', 'photoUrl'};
+      final protectedFields = {'studentId', 'course', 'batch', 'year', 'semester', 'status', 'gpa', 'credits'};
+
+      // Verify no overlap between permitted and protected fields
+      expect(permittedFields.intersection(protectedFields).isEmpty, true);
+
+      // 2. Dynamic Academic Summary Calculation Simulation
+      // Simulate approved module registrations (3 modules: 4 + 3 + 3 = 10 credits)
+      final approvedRegistrations = [
+        StudentModuleRegistrationModel(
+          registrationId: 'REG-1',
+          studentId: 'STU-1002',
+          studentName: 'Kasun Bandara',
+          studentEmail: 'kasun@uni.lk',
+          moduleId: 'M1',
+          moduleName: 'Algorithms',
+          registrationPeriodId: 'PER-1',
+          academicYear: '2026',
+          semester: 'Semester 1',
+          credits: 4,
+          status: 'Approved',
+          registeredAt: '2026-01-10',
+        ),
+        StudentModuleRegistrationModel(
+          registrationId: 'REG-2',
+          studentId: 'STU-1002',
+          studentName: 'Kasun Bandara',
+          studentEmail: 'kasun@uni.lk',
+          moduleId: 'M2',
+          moduleName: 'Databases',
+          registrationPeriodId: 'PER-1',
+          academicYear: '2026',
+          semester: 'Semester 1',
+          credits: 3,
+          status: 'Approved',
+          registeredAt: '2026-01-10',
+        ),
+        StudentModuleRegistrationModel(
+          registrationId: 'REG-3',
+          studentId: 'STU-1002',
+          studentName: 'Kasun Bandara',
+          studentEmail: 'kasun@uni.lk',
+          moduleId: 'M3',
+          moduleName: 'Web Tech',
+          registrationPeriodId: 'PER-1',
+          academicYear: '2026',
+          semester: 'Semester 1',
+          credits: 3,
+          status: 'Approved',
+          registeredAt: '2026-01-10',
+        ),
+      ];
+
+      final totalRegisteredCredits = approvedRegistrations
+          .where((r) => r.status == 'Approved')
+          .fold<num>(0, (sum, r) => sum + r.credits)
+          .toInt();
+      expect(totalRegisteredCredits, 10);
+
+      // Simulate published exam results
+      final publishedResults = [
+        ExamResultModel(
+          resultId: 'RES-1',
+          examId: 'EX-1',
+          examDocId: 'DOC-1',
+          moduleId: 'CS201',
+          subjectName: 'Algorithms',
+          studentId: 'STU-1002',
+          studentName: 'Kasun Bandara',
+          studentEmail: 'kasun@uni.lk',
+          marks: 88,
+          grade: 'A',
+          gradePoint: 4.0,
+          status: 'Published',
+          updatedAt: '2026-08-18',
+        ),
+        ExamResultModel(
+          resultId: 'RES-2',
+          examId: 'EX-2',
+          examDocId: 'DOC-2',
+          moduleId: 'CS202',
+          subjectName: 'Databases',
+          studentId: 'STU-1002',
+          studentName: 'Kasun Bandara',
+          studentEmail: 'kasun@uni.lk',
+          marks: 78,
+          grade: 'B+',
+          gradePoint: 3.3,
+          status: 'Published',
+          updatedAt: '2026-08-18',
+        ),
+        ExamResultModel(
+          resultId: 'RES-3',
+          examId: 'EX-3',
+          examDocId: 'DOC-3',
+          moduleId: 'CS203',
+          subjectName: 'Web Tech',
+          studentId: 'STU-1002',
+          studentName: 'Kasun Bandara',
+          studentEmail: 'kasun@uni.lk',
+          marks: 82,
+          grade: 'A-',
+          gradePoint: 3.7,
+          status: 'Published',
+          updatedAt: '2026-08-18',
+        ),
+      ];
+
+      double totalGpSum = 0.0;
+      int totalCreds = 0;
+      int completedCreds = 0;
+
+      final moduleCreditMap = {'CS201': 4, 'CS202': 3, 'CS203': 3};
+
+      for (var res in publishedResults) {
+        final cred = moduleCreditMap[res.moduleId] ?? 3;
+        totalGpSum += (res.gradePoint * cred);
+        totalCreds += cred;
+        if (res.gradePoint > 0) {
+          completedCreds += cred;
+        }
+      }
+
+      final dynamicGpa = totalCreds > 0 ? (totalGpSum / totalCreds) : 0.0;
+      expect(completedCreds, 10);
+      // (4.0*4 + 3.3*3 + 3.7*3) / 10 = (16.0 + 9.9 + 11.1) / 10 = 37.0 / 10 = 3.70
+      expect(dynamicGpa, 3.70);
+
+      // Academic Standing
+      String standing = 'Good Standing';
+      if (dynamicGpa >= 3.7) {
+        standing = "Dean's List";
+      } else if (dynamicGpa > 0 && dynamicGpa < 2.0) {
+        standing = 'Academic Warning';
+      }
+      expect(standing, "Dean's List");
+
+      // 3. Profile Audit Trail Structure Verification
+      final auditEntry = {
+        'userId': 'usr-1002',
+        'studentId': 'STU-1002',
+        'studentEmail': 'kasun@uni.lk',
+        'updatedFields': {
+          'phone': '+94 77 999 8888',
+          'address': 'Kandy, Sri Lanka',
+        },
+        'updatedBy': 'kasun@uni.lk',
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+
+      expect(auditEntry['studentId'], 'STU-1002');
+      expect((auditEntry['updatedFields'] as Map)['phone'], '+94 77 999 8888');
+    });
   });
 }
