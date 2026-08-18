@@ -26,6 +26,7 @@ import 'package:student_management_app/models/transport_model.dart';
 import 'package:student_management_app/models/facility_model.dart';
 import 'package:student_management_app/models/library_model.dart';
 import 'package:student_management_app/models/subject_model.dart';
+import 'package:student_management_app/utils/app_validator.dart';
 import 'package:student_management_app/services/exam_hall_service.dart';
 import 'package:student_management_app/services/exam_seating_service.dart';
 import 'package:student_management_app/services/exam_reports_service.dart';
@@ -2869,6 +2870,51 @@ void main() {
       const maxDocSizeBytes = 25 * 1024 * 1024; // 25MB
       expect(maxImageSizeBytes, 5242880);
       expect(maxDocSizeBytes, 26214400);
+    });
+
+    test('Global AppValidator Form Rules, Numeric Bounds, Date Ranges & Error Sanitization', () {
+      // 1. Required Field Validation
+      expect(AppValidator.validateRequired(null, 'Student Name'), 'Student Name is required.');
+      expect(AppValidator.validateRequired('   ', 'Student Name'), 'Student Name is required.');
+      expect(AppValidator.validateRequired('Kasun', 'Student Name'), null);
+
+      // 2. Email & Phone Formatting
+      expect(AppValidator.validateEmail('invalid-email'), 'Please enter a valid email address.');
+      expect(AppValidator.validateEmail('alice@university.lk'), null);
+      expect(AppValidator.validatePhone('123'), 'Please enter a valid phone number.');
+      expect(AppValidator.validatePhone('+94771234567'), null);
+
+      // 3. Numeric Constraints (Positive, Non-Negative, Marks Bounds)
+      expect(AppValidator.validatePositiveNumber('-10', 'Fee Amount'), 'Fee Amount must be greater than zero.');
+      expect(AppValidator.validatePositiveNumber('0', 'Fee Amount'), 'Fee Amount must be greater than zero.');
+      expect(AppValidator.validatePositiveNumber('50000', 'Fee Amount'), null);
+
+      expect(AppValidator.validateMarks('-5'), 'Marks cannot be negative.');
+      expect(AppValidator.validateMarks('105', maxMarks: 100), 'Marks cannot exceed 100.0.');
+      expect(AppValidator.validateMarks('85.5', maxMarks: 100), null);
+
+      // 4. Chronological Date Range Order
+      final start = DateTime(2026, 8, 1);
+      final validEnd = DateTime(2026, 8, 15);
+      final invalidEnd = DateTime(2026, 7, 20);
+
+      expect(AppValidator.validateDateRange(start, validEnd), null);
+      expect(AppValidator.validateDateRange(start, invalidEnd), 'End Date cannot be before Start Date.');
+      expect(AppValidator.validateDateRange(start, start), 'End Date must be after Start Date.');
+
+      // 5. Firebase Error Code Sanitization
+      expect(
+        AppValidator.sanitizeFirebaseError('FirebaseError: [cloud_firestore/permission-denied] Missing or insufficient permissions.'),
+        'Access Denied: You do not have permission to perform this action.',
+      );
+      expect(
+        AppValidator.sanitizeFirebaseError('PlatformException(network-request-failed, Network error, null)'),
+        'Network Error: Please check your internet connection and try again.',
+      );
+      expect(
+        AppValidator.sanitizeFirebaseError('FirebaseAuthException(user-not-found)'),
+        'Invalid credentials. Please verify your email and password.',
+      );
     });
   });
 }
