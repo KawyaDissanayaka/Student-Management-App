@@ -16,6 +16,7 @@ import '../screens/admin/admin_timetable_screen.dart';
 import '../screens/admin/admin_attendance_settings_screen.dart';
 import '../screens/admin/admin_exam_halls_screen.dart';
 import '../screens/admin/admin_exams_list_screen.dart';
+import '../screens/admin/admin_exam_registrations_screen.dart';
 import '../screens/admin/halls_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
@@ -182,6 +183,17 @@ class AdminDashboard extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AdminExamsListScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.app_registration_rounded, color: Colors.indigoAccent),
+              title: const Text('Exam Registrations', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminExamRegistrationsScreen()),
                 );
               },
             ),

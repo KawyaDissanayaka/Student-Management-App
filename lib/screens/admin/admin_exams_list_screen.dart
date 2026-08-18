@@ -3,6 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/exam_model.dart';
 import '../../models/exam_hall_model.dart';
 import '../../services/exam_hall_service.dart';
+import 'admin_exam_registrations_screen.dart';
+import 'admin_exam_seating_screen.dart';
+import 'admin_exam_attendance_screen.dart';
+import 'admin_exam_results_approval_screen.dart';
 
 class AdminExamsListScreen extends StatefulWidget {
   const AdminExamsListScreen({super.key});
@@ -637,6 +641,16 @@ class _AdminExamsListScreenState extends State<AdminExamsListScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.people_alt_rounded, color: Colors.cyanAccent),
+            tooltip: 'View All Exam Registrations',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminExamRegistrationsScreen()),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.tealAccent),
             tooltip: 'Schedule Exam',
             onPressed: () => _showAddEditExamModal(),
@@ -817,8 +831,23 @@ class _AdminExamsListScreenState extends State<AdminExamsListScreen> {
                                         icon: const Icon(Icons.more_vert_rounded, color: Colors.white70, size: 20),
                                         color: const Color(0xFF0F172A),
                                         onSelected: (action) {
-                                          if (action == 'assign') {
+                                          if (action == 'attendance') {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(builder: (context) => AdminExamAttendanceScreen(exam: exam)),
+                                            );
+                                          } else if (action == 'seating') {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(builder: (context) => AdminExamSeatingScreen(exam: exam)),
+                                            );
+                                          } else if (action == 'assign') {
                                             _showAssignHallModal(exam);
+                                          } else if (action == 'registrations') {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(builder: (context) => AdminExamRegistrationsScreen(exam: exam)),
+                                            );
                                           } else if (action == 'edit') {
                                             _showAddEditExamModal(existingExam: exam);
                                           } else if (action == 'delete') {
@@ -826,6 +855,9 @@ class _AdminExamsListScreenState extends State<AdminExamsListScreen> {
                                           }
                                         },
                                         itemBuilder: (ctx) => [
+                                          const PopupMenuItem(value: 'attendance', child: Text('Exam Day Attendance', style: TextStyle(color: Colors.greenAccent))),
+                                          const PopupMenuItem(value: 'seating', child: Text('Seating Plan & Desks', style: TextStyle(color: Colors.amberAccent))),
+                                          const PopupMenuItem(value: 'registrations', child: Text('View Registered Students', style: TextStyle(color: Colors.cyanAccent))),
                                           const PopupMenuItem(value: 'assign', child: Text('Assign / Change Hall', style: TextStyle(color: Colors.tealAccent))),
                                           const PopupMenuItem(value: 'edit', child: Text('Edit Exam Details', style: TextStyle(color: Colors.white))),
                                           const PopupMenuDivider(),
@@ -851,9 +883,32 @@ class _AdminExamsListScreenState extends State<AdminExamsListScreen> {
                                       const SizedBox(width: 4),
                                       Text('${exam.startTime} - ${exam.endTime}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                                       const Spacer(),
-                                      Text(
-                                        '${exam.registeredStudentCount} Students',
-                                        style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 11),
+                                      InkWell(
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => AdminExamRegistrationsScreen(exam: exam)),
+                                          );
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.indigo.withAlpha(50),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: Colors.indigoAccent.withAlpha(80)),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.people_rounded, size: 12, color: Colors.amberAccent),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${exam.registeredStudentCount} Registered',
+                                                style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 11),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -892,6 +947,40 @@ class _AdminExamsListScreenState extends State<AdminExamsListScreen> {
                                             ],
                                           ),
                                         ),
+                                        if (hasHall) ...[
+                                          OutlinedButton(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(builder: (context) => AdminExamAttendanceScreen(exam: exam)),
+                                              );
+                                            },
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(color: Colors.greenAccent),
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            ),
+                                            child: const Text('Attendance', style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                          ),
+                                          const SizedBox(width: 6),
+                                        ],
+                                        if (hasHall) ...[
+                                          OutlinedButton(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(builder: (context) => AdminExamSeatingScreen(exam: exam)),
+                                              );
+                                            },
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(color: Colors.amberAccent),
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            ),
+                                            child: const Text('Seating Plan', style: TextStyle(color: Colors.amberAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                          ),
+                                          const SizedBox(width: 6),
+                                        ],
                                         ElevatedButton(
                                           onPressed: () => _showAssignHallModal(exam),
                                           style: ElevatedButton.styleFrom(
@@ -900,7 +989,7 @@ class _AdminExamsListScreenState extends State<AdminExamsListScreen> {
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                           ),
                                           child: Text(
-                                            hasHall ? 'Change Hall' : 'Assign Hall',
+                                            hasHall ? 'Change' : 'Assign Hall',
                                             style: TextStyle(
                                               color: hasHall ? Colors.white : Colors.black,
                                               fontWeight: FontWeight.bold,

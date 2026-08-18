@@ -189,11 +189,11 @@ class ExamRegistrationService {
     required String examDocId,
   }) async {
     try {
-      final updateData = {
+      final updateData = <String, dynamic>{
         'status': newStatus,
         'approvedBy': approvedBy ?? 'Admin',
         'approvedAt': DateTime.now().toIso8601String(),
-        if (rejectionReason != null) 'rejectionReason': rejectionReason,
+        ...?rejectionReason == null ? null : {'rejectionReason': rejectionReason},
       };
 
       await _registrationsRef.doc(regDocId).update(updateData);

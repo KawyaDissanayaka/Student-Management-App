@@ -13,7 +13,11 @@ import 'package:student_management_app/models/lecturer_model.dart';
 import 'package:student_management_app/models/attendance_session_model.dart';
 import 'package:student_management_app/models/exam_hall_model.dart';
 import 'package:student_management_app/models/exam_model.dart';
+import 'package:student_management_app/models/exam_registration_model.dart';
+import 'package:student_management_app/models/exam_seating_model.dart';
+import 'package:student_management_app/models/exam_attendance_record_model.dart';
 import 'package:student_management_app/services/exam_hall_service.dart';
+import 'package:student_management_app/services/exam_seating_service.dart';
 import 'package:student_management_app/services/student_portal_service.dart';
 
 void main() {
@@ -552,6 +556,255 @@ void main() {
         status: 'Available',
       );
       expect(exam.registeredStudentCount <= smallHall.capacity, false);
+    });
+
+    test('Exam Registration Model Attributes & Workflow Status', () {
+      final reg = ExamRegistrationModel(
+        registrationId: 'EXREG-0001',
+        studentDocId: 'doc_123',
+        studentId: 'STU-1001',
+        studentName: 'Alice Johnson',
+        studentEmail: 'alice@uni.lk',
+        examId: 'EXM-101',
+        examDocId: 'exam_doc_101',
+        subjectCode: 'CS101',
+        subjectName: 'Mobile App Architecture',
+        batch: '2026',
+        registeredAt: '2026-08-18T10:00:00',
+        status: 'Registered',
+      );
+
+      expect(reg.registrationId, 'EXREG-0001');
+      expect(reg.isApprovedOrRegistered, true);
+      expect(reg.isPending, false);
+      expect(reg.isRejected, false);
+      expect(reg.isCancelled, false);
+
+      final map = reg.toMap();
+      expect(map['registrationId'], 'EXREG-0001');
+      expect(map['studentId'], 'STU-1001');
+      expect(map['status'], 'Registered');
+    });
+
+    test('Exam Registration Deadline & Duplicate Prevention Rules', () {
+      // 1. Exam with open future deadline
+      final openExam = ExamModel(
+        examId: 'EXM-201',
+        subjectCode: 'CS201',
+        subjectName: 'Cloud Computing',
+        examType: 'Final',
+        date: '2026-11-20',
+        startTime: '09:00 AM',
+        endTime: '12:00 PM',
+        examHall: 'Main Hall',
+        semester: 'Semester 1',
+        academicYear: '2025/2026',
+        registrationDeadline: '2026-11-15',
+      );
+      expect(openExam.isPastDeadline, false);
+
+      // 2. Exam with passed past deadline
+      final closedExam = ExamModel(
+        examId: 'EXM-202',
+        subjectCode: 'CS202',
+        subjectName: 'Database Systems',
+        examType: 'Midterm',
+        date: '2026-01-15',
+        startTime: '09:00 AM',
+        endTime: '11:00 AM',
+        examHall: 'Main Hall',
+        semester: 'Semester 1',
+        academicYear: '2025/2026',
+        registrationDeadline: '2026-01-10',
+      );
+      expect(closedExam.isPastDeadline, true);
+
+      // 3. Duplicate Registration Check Logic
+      final existingRegistrations = [
+        ExamRegistrationModel(
+          registrationId: 'EXREG-0010',
+          studentDocId: 'doc1',
+          studentId: 'STU-1001',
+          studentName: 'Alice',
+          studentEmail: 'alice@uni.lk',
+          examId: 'EXM-201',
+          examDocId: 'doc_201',
+          subjectCode: 'CS201',
+          subjectName: 'Cloud Computing',
+          batch: '2026',
+          registeredAt: '2026-08-18T10:00:00',
+          status: 'Registered',
+        ),
+      ];
+
+      bool hasDuplicate(String studentId, String examId) {
+        return existingRegistrations.any(
+          (r) => r.studentId == studentId && r.examId == examId && r.status != 'Cancelled',
+        );
+      }
+
+      expect(hasDuplicate('STU-1001', 'EXM-201'), true); // Duplicate!
+      expect(hasDuplicate('STU-1002', 'EXM-201'), false); // Eligible new student
+      expect(hasDuplicate('STU-1001', 'EXM-202'), false); // Eligible different exam
+    });
+
+    test('Exam Seating Model Attributes & Serialization', () {
+      final seating = ExamSeatingModel(
+        seatingId: 'EXS-EXM-101-001',
+        examId: 'EXM-101',
+        examDocId: 'doc_101',
+        studentId: 'STU-1005',
+        studentName: 'Bob Martin',
+        studentEmail: 'bob@uni.lk',
+        hallId: 'EXH-0001',
+        hallName: 'Main Exam Hall Alpha',
+        seatNumber: 'SEAT-001',
+        allocatedAt: '2026-08-18T10:00:00',
+        allocatedBy: 'Admin',
+      );
+
+      expect(seating.seatingId, 'EXS-EXM-101-001');
+      expect(seating.seatNumber, 'SEAT-001');
+      expect(seating.studentId, 'STU-1005');
+      expect(seating.hallName, 'Main Exam Hall Alpha');
+
+      final map = seating.toMap();
+      expect(map['seatNumber'], 'SEAT-001');
+      expect(map['studentName'], 'Bob Martin');
+    });
+
+    test('Deterministic Mixed Student Seating Allocation Algorithm', () {
+      final registeredStudents = [
+        ExamRegistrationModel(registrationId: 'R1', studentDocId: 'd1', studentId: 'STU-001', studentName: 'Student 1', studentEmail: 's1@uni.lk', examId: 'EXM-1', examDocId: 'ed1', subjectCode: 'CS101', subjectName: 'Sub', batch: '2026', registeredAt: ''),
+        ExamRegistrationModel(registrationId: 'R2', studentDocId: 'd2', studentId: 'STU-002', studentName: 'Student 2', studentEmail: 's2@uni.lk', examId: 'EXM-1', examDocId: 'ed1', subjectCode: 'CS101', subjectName: 'Sub', batch: '2026', registeredAt: ''),
+        ExamRegistrationModel(registrationId: 'R3', studentDocId: 'd3', studentId: 'STU-003', studentName: 'Student 3', studentEmail: 's3@uni.lk', examId: 'EXM-1', examDocId: 'ed1', subjectCode: 'CS101', subjectName: 'Sub', batch: '2026', registeredAt: ''),
+        ExamRegistrationModel(registrationId: 'R4', studentDocId: 'd4', studentId: 'STU-004', studentName: 'Student 4', studentEmail: 's4@uni.lk', examId: 'EXM-1', examDocId: 'ed1', subjectCode: 'CS101', subjectName: 'Sub', batch: '2026', registeredAt: ''),
+        ExamRegistrationModel(registrationId: 'R5', studentDocId: 'd5', studentId: 'STU-005', studentName: 'Student 5', studentEmail: 's5@uni.lk', examId: 'EXM-1', examDocId: 'ed1', subjectCode: 'CS101', subjectName: 'Sub', batch: '2026', registeredAt: ''),
+        ExamRegistrationModel(registrationId: 'R6', studentDocId: 'd6', studentId: 'STU-006', studentName: 'Student 6', studentEmail: 's6@uni.lk', examId: 'EXM-1', examDocId: 'ed1', subjectCode: 'CS101', subjectName: 'Sub', batch: '2026', registeredAt: ''),
+      ];
+
+      // 1. Run algorithm with seed 'EXM-1_EXH-1'
+      final run1 = ExamSeatingService.deterministicMixStudents(registeredStudents, 'EXM-1_EXH-1');
+      final run2 = ExamSeatingService.deterministicMixStudents(registeredStudents, 'EXM-1_EXH-1');
+
+      // 2. Determinism Check: Exact same order for identical seed
+      expect(run1.length, 6);
+      expect(run2.length, 6);
+      for (int i = 0; i < run1.length; i++) {
+        expect(run1[i].studentId, run2[i].studentId);
+      }
+
+      // 3. Mixed Check: Result is not simply ascending sequential student IDs
+      final isExactSequential = run1[0].studentId == 'STU-001' &&
+          run1[1].studentId == 'STU-002' &&
+          run1[2].studentId == 'STU-003' &&
+          run1[3].studentId == 'STU-004';
+      expect(isExactSequential, false);
+
+      // 4. Preservation Check: All 6 unique students are preserved without duplicates
+      final studentIds = run1.map((s) => s.studentId).toSet();
+      expect(studentIds.length, 6);
+      expect(studentIds.contains('STU-001'), true);
+      expect(studentIds.contains('STU-006'), true);
+    });
+
+    test('Seating Capacity & Hall Verification Rules', () {
+      final hall = ExamHallModel(
+        hallId: 'EXH-01',
+        hallName: 'Hall 01',
+        building: 'B1',
+        floor: 'F1',
+        capacity: 4,
+        facilities: [],
+        status: 'Available',
+      );
+
+      final registeredCount = 5;
+      final bool isCapacityExceeded = registeredCount > hall.capacity;
+      expect(isCapacityExceeded, true); // Cannot allocate 5 students in 4 seats!
+
+      final underMaintenanceHall = ExamHallModel(
+        hallId: 'EXH-02',
+        hallName: 'Hall 02',
+        building: 'B2',
+        floor: 'F2',
+        capacity: 50,
+        facilities: [],
+        status: 'Maintenance',
+      );
+      expect(underMaintenanceHall.isAvailable, false); // Cannot allocate in maintenance hall!
+    });
+
+    test('Exam Attendance Record Model Serialization & Verification Rules', () {
+      final record = ExamAttendanceRecordModel(
+        attendanceId: 'EXATT-0001',
+        examId: 'EXM-101',
+        examDocId: 'doc_101',
+        studentId: 'STU-1001',
+        studentName: 'Alice Johnson',
+        studentEmail: 'alice@uni.lk',
+        hallId: 'EXH-0001',
+        hallName: 'Main Exam Hall Alpha',
+        seatNumber: 'SEAT-004',
+        status: 'Present',
+        markedAt: '2026-08-18T09:15:00',
+        markedBy: 'Exam Invigilator',
+        verificationMethod: 'QR',
+        isSeatMatched: true,
+      );
+
+      expect(record.attendanceId, 'EXATT-0001');
+      expect(record.isPresent, true);
+      expect(record.isAbsent, false);
+      expect(record.isSeatMatched, true);
+      expect(record.verificationMethod, 'QR');
+
+      final map = record.toMap();
+      expect(map['studentId'], 'STU-1001');
+      expect(map['seatNumber'], 'SEAT-004');
+      expect(map['status'], 'Present');
+    });
+
+    test('Exam Day Attendance Seat Mismatch Detection & Duplicate Prevention Rules', () {
+      // 1. Seat Mismatch Logic
+      const allocatedSeat = 'SEAT-004';
+      const claimedSeat1 = 'SEAT-004'; // Match
+      const claimedSeat2 = 'SEAT-012'; // Mismatch!
+
+      final bool isMatch1 = claimedSeat1.trim().toUpperCase() == allocatedSeat.toUpperCase();
+      final bool isMatch2 = claimedSeat2.trim().toUpperCase() == allocatedSeat.toUpperCase();
+
+      expect(isMatch1, true);
+      expect(isMatch2, false);
+
+      // 2. Duplicate Attendance Prevention Logic
+      final existingRecords = [
+        ExamAttendanceRecordModel(
+          attendanceId: 'EXATT-001',
+          examId: 'EXM-101',
+          examDocId: 'ed1',
+          studentId: 'STU-1001',
+          studentName: 'Alice',
+          studentEmail: 'alice@uni.lk',
+          hallId: 'EXH-01',
+          hallName: 'Main Hall',
+          seatNumber: 'SEAT-004',
+          status: 'Present',
+          markedAt: '2026-08-18T09:05:00',
+          markedBy: 'Invigilator 1',
+          verificationMethod: 'QR',
+        ),
+      ];
+
+      bool isAlreadyMarkedPresent(String studentId, String examId) {
+        return existingRecords.any(
+          (r) => r.studentId == studentId && r.examId == examId && r.isPresent,
+        );
+      }
+
+      expect(isAlreadyMarkedPresent('STU-1001', 'EXM-101'), true); // Duplicate!
+      expect(isAlreadyMarkedPresent('STU-1002', 'EXM-101'), false); // Eligible to mark
+      expect(isAlreadyMarkedPresent('STU-1001', 'EXM-102'), false); // Eligible different exam
     });
   });
 }

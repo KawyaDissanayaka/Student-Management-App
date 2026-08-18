@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import '../../services/student_portal_service.dart';
 import '../../services/enrollment_service.dart';
 import '../../services/exam_registration_service.dart';
+import '../../services/exam_seating_service.dart';
+import '../../services/exam_attendance_service.dart';
 import '../../models/exam_model.dart';
 import '../../models/exam_registration_model.dart';
+import '../../models/exam_seating_model.dart';
+import '../../models/exam_attendance_record_model.dart';
 
 class StudentExamsScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -17,10 +21,55 @@ class StudentExamsScreen extends StatefulWidget {
 class _StudentExamsScreenState extends State<StudentExamsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ExamRegistrationService _regService = ExamRegistrationService();
+  final ExamSeatingService _seatingService = ExamSeatingService();
+  final ExamAttendanceService _attendanceService = ExamAttendanceService();
   final StudentPortalService _portalService = StudentPortalService();
   final EnrollmentService _enrollmentService = EnrollmentService();
 
   bool _isRegistering = false;
+
+  void _showQrPassModal(ExamRegistrationModel reg, ExamSeatingModel? seating) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Digital Exam Hall Pass QR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)),
+            const SizedBox(height: 4),
+            Text('${reg.subjectCode} • ${reg.subjectName}', style: const TextStyle(color: Colors.tealAccent, fontSize: 12), textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            // Large QR Code Frame
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.qr_code_2_rounded, size: 140, color: Colors.black),
+                  Text(
+                    reg.registrationId,
+                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'monospace', fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (seating != null) ...[
+              Text('Allocated Seat: ${seating.seatNumber} • Venue: ${seating.hallName}', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(height: 4),
+            ],
+            const Text('Present this QR code to the invigilator at the examination hall entrance for verification.', style: TextStyle(color: Colors.grey, fontSize: 11), textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -215,15 +264,29 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> with SingleTick
               final registrations = regSnap.data ?? [];
               final registeredExamIds = registrations.map((r) => r.examId).toSet();
 
-              return TabBarView(
-                controller: _tabController,
-                children: [
-                  // ─── TAB 1: MY REGISTERED EXAMS & HALL PASSES ────────────────
-                  _buildRegisteredPassesTab(studentName, studentId, batch, registrations),
+              return StreamBuilder<List<ExamSeatingModel>>(
+                stream: _seatingService.getSeatingForStudentStream(studentId, studentEmail: email),
+                builder: (context, seatingSnap) {
+                  final seatings = seatingSnap.data ?? [];
 
-                  // ─── TAB 2: REGISTER FOR UPCOMING EXAMS ─────────────────────
-                  _buildRegisterUpcomingTab(email, studentId, studentName, batch, enrolledCodes, registeredExamIds, registrations),
-                ],
+                  return StreamBuilder<List<ExamAttendanceRecordModel>>(
+                    stream: _attendanceService.getStudentExamAttendanceStream(studentId, studentEmail: email),
+                    builder: (context, attSnap) {
+                      final attendances = attSnap.data ?? [];
+
+                      return TabBarView(
+                        controller: _tabController,
+                        children: [
+                          // ─── TAB 1: MY REGISTERED EXAMS & HALL PASSES ────────────────
+                          _buildRegisteredPassesTab(studentName, studentId, batch, registrations, seatings, attendances),
+
+                          // ─── TAB 2: REGISTER FOR UPCOMING EXAMS ─────────────────────
+                          _buildRegisterUpcomingTab(email, studentId, studentName, batch, enrolledCodes, registeredExamIds, registrations),
+                        ],
+                      );
+                    },
+                  );
+                },
               );
             },
           );
@@ -238,6 +301,8 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> with SingleTick
     String studentId,
     String batch,
     List<ExamRegistrationModel> registrations,
+    List<ExamSeatingModel> seatings,
+    List<ExamAttendanceRecordModel> attendances,
   ) {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -292,7 +357,7 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> with SingleTick
         ),
         const SizedBox(height: 20),
 
-        const Text('Registered Exam Passes', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        const Text('Registered Exam Passes & Allocated Seats', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
 
         if (registrations.isEmpty)
@@ -320,13 +385,23 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> with SingleTick
           ...registrations.map((reg) {
             final isApproved = reg.isApprovedOrRegistered;
 
+            // Match allocated seating for this registration
+            final seatingMatch = seatings.where((s) => s.examId == reg.examId || s.examDocId == reg.examDocId).toList();
+            final hasSeat = seatingMatch.isNotEmpty;
+            final assignedSeat = hasSeat ? seatingMatch.first : null;
+
+            // Match attendance record for this registration
+            final attMatch = attendances.where((a) => a.examId == reg.examId || a.examDocId == reg.examDocId).toList();
+            final attRecord = attMatch.isNotEmpty ? attMatch.first : null;
+            final isPresent = attRecord != null && attRecord.isPresent;
+
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: isPresent ? const Color(0xFF064E3B).withAlpha(30) : const Color(0xFF1E293B),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isApproved ? Colors.tealAccent.withAlpha(80) : Colors.amberAccent.withAlpha(80)),
+                border: Border.all(color: isPresent ? Colors.greenAccent : (hasSeat ? Colors.tealAccent.withAlpha(80) : Colors.amberAccent.withAlpha(80))),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,22 +418,97 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> with SingleTick
                         ),
                         child: Text(reg.subjectCode, style: const TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isApproved ? Colors.green.withAlpha(30) : Colors.amber.withAlpha(30),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          reg.status.toUpperCase(),
-                          style: TextStyle(color: isApproved ? Colors.greenAccent : Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
+                      Row(
+                        children: [
+                          if (isPresent)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(color: Colors.green.withAlpha(40), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.greenAccent)),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.check_circle_rounded, size: 12, color: Colors.greenAccent),
+                                  SizedBox(width: 4),
+                                  Text('PRESENT (VERIFIED)', style: TextStyle(color: Colors.greenAccent, fontSize: 9, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: isApproved ? Colors.teal.withAlpha(30) : Colors.amber.withAlpha(30),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                reg.status.toUpperCase(),
+                                style: TextStyle(color: isApproved ? Colors.tealAccent : Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Text(reg.subjectName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
+
+                  // Allocated Seat & Venue Banner
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: hasSeat ? const Color(0xFF064E3B).withAlpha(40) : const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: hasSeat ? Colors.greenAccent.withAlpha(60) : Colors.white10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          hasSeat ? Icons.event_seat_rounded : Icons.pending_actions_rounded,
+                          size: 18,
+                          color: hasSeat ? Colors.greenAccent : Colors.amberAccent,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    hasSeat ? 'Assigned Seat: ' : 'Seat Number: ',
+                                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                                  ),
+                                  Text(
+                                    hasSeat ? assignedSeat!.seatNumber : 'Desk Allocation Pending',
+                                    style: TextStyle(
+                                      color: hasSeat ? Colors.greenAccent : Colors.amberAccent,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: hasSeat ? 'monospace' : null,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (hasSeat)
+                                Text('Venue: ${assignedSeat!.hallName}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => _showQrPassModal(reg, assignedSeat),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          ),
+                          icon: const Icon(Icons.qr_code_rounded, size: 14, color: Colors.white),
+                          label: const Text('Show QR', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
 
                   Row(
                     children: [
