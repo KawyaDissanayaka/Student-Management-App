@@ -10,6 +10,7 @@ import 'lecturer_assignments_view.dart';
 import 'lecturer_tasks_view.dart';
 import 'lecturer_announcements_view.dart';
 import 'lecturer_results_view.dart';
+import 'lecturer_qr_session_screen.dart';
 
 class LecturerSubjectDetailScreen extends StatefulWidget {
   final SubjectModel subject;
@@ -182,6 +183,25 @@ class _LecturerSubjectDetailScreenState extends State<LecturerSubjectDetailScree
             Text(s.subjectName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_2_rounded, color: Colors.tealAccent),
+            tooltip: 'Start Dynamic QR Attendance',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LecturerQrSessionScreen(
+                    subject: widget.subject,
+                    lecturerEmail: widget.lecturerEmail,
+                    lecturerName: widget.lecturerName,
+                    lecturerId: 'LEC-1001',
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,

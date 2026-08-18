@@ -9,6 +9,11 @@ import 'package:student_management_app/models/timetable_model.dart';
 import 'package:student_management_app/models/hall_model.dart';
 import 'package:student_management_app/models/material_model.dart';
 import 'package:student_management_app/models/submission_model.dart';
+import 'package:student_management_app/models/lecturer_model.dart';
+import 'package:student_management_app/models/attendance_session_model.dart';
+import 'package:student_management_app/models/exam_hall_model.dart';
+import 'package:student_management_app/models/exam_model.dart';
+import 'package:student_management_app/services/exam_hall_service.dart';
 import 'package:student_management_app/services/student_portal_service.dart';
 
 void main() {
@@ -347,6 +352,206 @@ void main() {
       final reviewedSubs = [sub1, sub2];
       final avg = reviewedSubs.map((s) => s.mark!).reduce((a, b) => a + b) / reviewedSubs.length;
       expect(avg, 80.0);
+    });
+
+    test('Lecturer Model Profile Attributes & Serialization', () {
+      final lecturer = LecturerModel(
+        lecturerId: 'LEC-2001',
+        name: 'Dr. John Perera',
+        email: 'john.perera@university.lk',
+        department: 'Department of Computing',
+        designation: 'Senior Lecturer',
+        phone: '+94 77 123 4567',
+        address: 'Faculty of Computing, Main Campus',
+        photoUrl: 'https://example.com/avatar.jpg',
+        joinedDate: '2023-01-15',
+        status: 'active',
+      );
+
+      final map = lecturer.toMap();
+      expect(map['lecturerId'], 'LEC-2001');
+      expect(map['name'], 'Dr. John Perera');
+      expect(map['designation'], 'Senior Lecturer');
+      expect(map['phone'], '+94 77 123 4567');
+      expect(map['joinedDate'], '2023-01-15');
+      expect(map['status'], 'active');
+    });
+
+    test('Attendance Session Model & Percentage Calculation Logic', () {
+      final session = AttendanceSessionModel(
+        sessionId: 'SESS-CS101-123456',
+        subjectCode: 'CS101',
+        subjectName: 'Mobile Development',
+        lecturerId: 'LEC-2001',
+        lecturerName: 'Dr. John Perera',
+        lecturerEmail: 'john.perera@university.lk',
+        hallName: 'LH-01',
+        batch: '2026',
+        date: '2026-08-18',
+        startTime: '09:00',
+        endTime: '11:00',
+        qrToken: 'QR-SESS-CS101-123456-999',
+        expiresAt: '2026-08-18T10:00:00',
+        enrolledCount: 35,
+        presentCount: 28,
+      );
+
+      expect(session.enrolledCount, 35);
+      expect(session.presentCount, 28);
+
+      final pendingCount = session.enrolledCount - session.presentCount;
+      expect(pendingCount, 7);
+
+      // Attendance % = Present ÷ Conducted Classes × 100
+      final double attendancePct = (session.presentCount / session.enrolledCount) * 100;
+      expect(attendancePct, 80.0);
+    });
+
+    test('Admin Attendance Settings Validation & Rules Logic', () {
+      final config = {
+        'threshold': 80.0,
+        'requiredPercentage': 80.0,
+        'minAttendancePercentage': 80.0,
+        'qrValidityMinutes': 15,
+        'enableLateAttendance': true,
+        'lateThresholdMinutes': 10,
+        'enableLocationVerification': true,
+        'allowedRadiusMeters': 200.0,
+        'enableManualAttendance': false,
+      };
+
+      // Numeric validations
+      expect(config['requiredPercentage'], inInclusiveRange(50.0, 100.0));
+      expect(config['qrValidityMinutes'], inInclusiveRange(1, 120));
+      expect(config['lateThresholdMinutes'], inInclusiveRange(1, 60));
+      expect(config['allowedRadiusMeters'], inInclusiveRange(10.0, 5000.0));
+
+      // Dynamic Late Calculation
+      final sessionStart = DateTime(2026, 8, 18, 9, 0); // 09:00 AM
+      final onTimeScan = DateTime(2026, 8, 18, 9, 8); // 8 mins late <= 10 threshold -> Present
+      final lateScan = DateTime(2026, 8, 18, 9, 15); // 15 mins late > 10 threshold -> Late
+
+      final bool isOnTime = onTimeScan.difference(sessionStart).inMinutes <= (config['lateThresholdMinutes'] as int);
+      final bool isLate = lateScan.difference(sessionStart).inMinutes > (config['lateThresholdMinutes'] as int);
+
+      expect(isOnTime, true);
+      expect(isLate, true);
+    });
+
+    test('Exam Hall Model Attributes & Status Checks', () {
+      final hall = ExamHallModel(
+        hallId: 'EXH-001',
+        hallName: 'Main Exam Hall Alpha',
+        building: 'Faculty of Computing',
+        floor: '2nd Floor',
+        capacity: 120,
+        facilities: ['Air Conditioning', 'CCTV Monitoring', 'PA Audio System'],
+        status: 'Available',
+      );
+
+      expect(hall.hallId, 'EXH-001');
+      expect(hall.capacity, 120);
+      expect(hall.isAvailable, true);
+      expect(hall.isUnderMaintenance, false);
+      expect(hall.isInactive, false);
+
+      final map = hall.toMap();
+      expect(map['hallName'], 'Main Exam Hall Alpha');
+      expect(map['capacity'], 120);
+      expect(map['facilities'].length, 3);
+    });
+
+    test('Exam Hall Time Conflict & Overlap Detection Logic', () {
+      // Slot 1: 09:00 - 12:00
+      // Slot 2: 10:00 - 13:00 -> OVERLAP!
+      expect(
+        ExamHallService.hasTimeConflict(
+          startA: '09:00 AM',
+          endA: '12:00 PM',
+          startB: '10:00 AM',
+          endB: '01:00 PM',
+        ),
+        true,
+      );
+
+      // Slot 1: 09:00 - 11:00
+      // Slot 2: 11:00 - 13:00 -> NO OVERLAP (contiguous)
+      expect(
+        ExamHallService.hasTimeConflict(
+          startA: '09:00 AM',
+          endA: '11:00 AM',
+          startB: '11:00 AM',
+          endB: '01:00 PM',
+        ),
+        false,
+      );
+
+      // Slot 1: 09:00 - 11:00
+      // Slot 2: 14:00 - 16:00 -> NO OVERLAP
+      expect(
+        ExamHallService.hasTimeConflict(
+          startA: '09:00 AM',
+          endA: '11:00 AM',
+          startB: '02:00 PM',
+          endB: '04:00 PM',
+        ),
+        false,
+      );
+    });
+
+    test('Exam Hall Assignment Capacity & Eligibility Criteria', () {
+      final availableHall = ExamHallModel(
+        hallId: 'EXH-001',
+        hallName: 'Hall Alpha',
+        building: 'Complex A',
+        floor: '1st Floor',
+        capacity: 100,
+        facilities: ['AC'],
+        status: 'Available',
+      );
+
+      final maintenanceHall = ExamHallModel(
+        hallId: 'EXH-002',
+        hallName: 'Hall Beta',
+        building: 'Complex B',
+        floor: '2nd Floor',
+        capacity: 150,
+        facilities: ['AC'],
+        status: 'Maintenance',
+      );
+
+      final exam = ExamModel(
+        examId: 'EXM-101',
+        subjectCode: 'CS101',
+        subjectName: 'Mobile Computing',
+        examType: 'Final',
+        date: '2026-09-15',
+        startTime: '09:00 AM',
+        endTime: '12:00 PM',
+        examHall: 'Not Assigned',
+        semester: 'Semester 1',
+        academicYear: '2025/2026',
+        registeredStudentCount: 85,
+      );
+
+      // 1. Available hall with capacity >= 85 is eligible
+      expect(availableHall.isAvailable, true);
+      expect(exam.registeredStudentCount <= availableHall.capacity, true);
+
+      // 2. Maintenance hall is ineligible
+      expect(maintenanceHall.isAvailable, false);
+
+      // 3. Hall with capacity 50 is ineligible for 85 students
+      final smallHall = ExamHallModel(
+        hallId: 'EXH-003',
+        hallName: 'Small Lab',
+        building: 'Complex A',
+        floor: '3rd Floor',
+        capacity: 50,
+        facilities: [],
+        status: 'Available',
+      );
+      expect(exam.registeredStudentCount <= smallHall.capacity, false);
     });
   });
 }

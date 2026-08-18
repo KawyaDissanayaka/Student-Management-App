@@ -13,6 +13,9 @@ import '../screens/admin/reports_screen.dart';
 import '../screens/admin/admin_profile_screen.dart';
 import '../screens/admin/admin_settings_screen.dart';
 import '../screens/admin/admin_timetable_screen.dart';
+import '../screens/admin/admin_attendance_settings_screen.dart';
+import '../screens/admin/admin_exam_halls_screen.dart';
+import '../screens/admin/admin_exams_list_screen.dart';
 import '../screens/admin/halls_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
@@ -161,13 +164,46 @@ class AdminDashboard extends StatelessWidget {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.door_sliding_rounded, color: Colors.tealAccent),
+              title: const Text('Exam Halls', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminExamHallsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.assignment_turned_in_rounded, color: Colors.cyanAccent),
+              title: const Text('Examinations & Hall Assign', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminExamsListScreen()),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.fact_check_rounded, color: Colors.greenAccent),
-              title: const Text('Attendance', style: TextStyle(color: Colors.white)),
+              title: const Text('Attendance Logs', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AttendanceListScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.tune_rounded, color: Colors.amberAccent),
+              title: const Text('Attendance Settings', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminAttendanceSettingsScreen()),
                 );
               },
             ),
@@ -553,6 +589,30 @@ class AdminDashboard extends StatelessWidget {
                                                                   Navigator.push(
                                                                     context,
                                                                     MaterialPageRoute(builder: (context) => const HallsListScreen()),
+                                                                  );
+                                                                },
+                                                              ),
+                                                              _dashboardCard(
+                                                                icon: Icons.door_sliding_rounded,
+                                                                title: 'Exam Halls',
+                                                                value: 'Venues & Seats',
+                                                                color: Colors.tealAccent,
+                                                                onTap: () {
+                                                                  Navigator.push(
+                                                                    context,
+                                                                    MaterialPageRoute(builder: (context) => const AdminExamHallsScreen()),
+                                                                  );
+                                                                },
+                                                              ),
+                                                              _dashboardCard(
+                                                                icon: Icons.assignment_turned_in_rounded,
+                                                                title: 'Examinations',
+                                                                value: 'Hall Assignment',
+                                                                color: Colors.cyanAccent,
+                                                                onTap: () {
+                                                                  Navigator.push(
+                                                                    context,
+                                                                    MaterialPageRoute(builder: (context) => const AdminExamsListScreen()),
                                                                   );
                                                                 },
                                                               ),

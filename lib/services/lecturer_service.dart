@@ -112,4 +112,44 @@ class LecturerService {
       throw Exception('Failed to change lecturer status: $e');
     }
   }
+
+  /// Fetch single Lecturer by email or uid
+  Future<LecturerModel?> getLecturerByEmail(String email) async {
+    final cleanEmail = email.trim().toLowerCase();
+    try {
+      final query = await _lecturersRef.where('email', isEqualTo: cleanEmail).limit(1).get();
+      if (query.docs.isNotEmpty) {
+        return LecturerModel.fromFirestore(query.docs.first);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching lecturer by email: $e');
+      return null;
+    }
+  }
+
+  /// Update permitted profile details (phone, address, photoUrl, etc.)
+  Future<void> updateLecturerProfile({
+    required String docId,
+    required Map<String, dynamic> updateData,
+    String? uid,
+  }) async {
+    try {
+      final payload = Map<String, dynamic>.from(updateData);
+      payload['updatedAt'] = DateTime.now().toIso8601String();
+
+      // 1. Update lecturers collection
+      await _lecturersRef.doc(docId).set(payload, SetOptions(merge: true));
+
+      // 2. Update users collection for the logged in user
+      if (uid != null && uid.isNotEmpty) {
+        await _firestore.collection('users').doc(uid).set(payload, SetOptions(merge: true));
+      }
+
+      debugPrint('Lecturer profile updated successfully for doc: $docId');
+    } catch (e) {
+      debugPrint('Error updating lecturer profile: $e');
+      throw Exception('Failed to update profile: $e');
+    }
+  }
 }

@@ -9,6 +9,8 @@ import '../user_tasks_screen.dart';
 import '../user_notifications_screen.dart';
 import 'lecturer_subjects_screen.dart';
 import 'lecturer_timetable_screen.dart';
+import 'lecturer_profile_screen.dart';
+import 'lecturer_settings_screen.dart';
 
 class LecturerDashboardScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -22,6 +24,27 @@ class LecturerDashboardScreen extends StatefulWidget {
 class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
   final AuthService _authService = AuthService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  void _checkAuth() {
+    final user = _authService.currentUser;
+    if (user == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (route) => false,
+          );
+        }
+      });
+    }
+  }
 
   String _getTodayDayOfWeek() {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -324,6 +347,30 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
             },
           ),
           IconButton(
+            icon: const Icon(Icons.person_rounded, color: Colors.amberAccent),
+            tooltip: 'Lecturer Profile',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LecturerProfileScreen(userData: widget.userData),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_rounded, color: Colors.tealAccent),
+            tooltip: 'Settings',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LecturerSettingsScreen(userData: widget.userData),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
             tooltip: 'Sign Out',
             onPressed: _confirmSignOut,
@@ -430,42 +477,59 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                                   return ListView(
                                     padding: const EdgeInsets.all(16),
                                     children: [
-                                      // Lecturer Profile Header Banner
-                                      Container(
-                                        padding: const EdgeInsets.all(20),
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [Color(0xFF1E293B), Color(0xFF334155)],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          borderRadius: BorderRadius.circular(18),
-                                          border: Border.all(color: Colors.amberAccent.withAlpha(80)),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            CircleAvatar(
-                                              radius: 30,
-                                              backgroundColor: Colors.amber.withAlpha(30),
-                                              child: const Icon(Icons.person_rounded, size: 36, color: Colors.amberAccent),
-                                            ),
-                                            const SizedBox(width: 16),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(lecturerName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                                                  const SizedBox(height: 2),
-                                                  Text('$lecturerId • $department', style: const TextStyle(color: Colors.amberAccent, fontSize: 12, fontWeight: FontWeight.w600)),
-                                                  const SizedBox(height: 4),
-                                                  Text(email, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 18),
+                                       // Lecturer Profile Header Banner (Clickable)
+                                       GestureDetector(
+                                         onTap: () {
+                                           Navigator.push(
+                                             context,
+                                             MaterialPageRoute(
+                                               builder: (context) => LecturerProfileScreen(userData: widget.userData),
+                                             ),
+                                           );
+                                         },
+                                         child: Container(
+                                           padding: const EdgeInsets.all(20),
+                                           decoration: BoxDecoration(
+                                             gradient: const LinearGradient(
+                                               colors: [Color(0xFF1E293B), Color(0xFF334155)],
+                                               begin: Alignment.topLeft,
+                                               end: Alignment.bottomRight,
+                                             ),
+                                             borderRadius: BorderRadius.circular(18),
+                                             border: Border.all(color: Colors.amberAccent.withAlpha(80)),
+                                           ),
+                                           child: Row(
+                                             children: [
+                                               CircleAvatar(
+                                                 radius: 30,
+                                                 backgroundColor: Colors.amber.withAlpha(30),
+                                                 child: const Icon(Icons.person_rounded, size: 36, color: Colors.amberAccent),
+                                               ),
+                                               const SizedBox(width: 16),
+                                               Expanded(
+                                                 child: Column(
+                                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                                   children: [
+                                                     Row(
+                                                       children: [
+                                                         Expanded(
+                                                           child: Text(lecturerName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                                                         ),
+                                                         const Icon(Icons.arrow_forward_ios_rounded, color: Colors.amberAccent, size: 14),
+                                                       ],
+                                                     ),
+                                                     const SizedBox(height: 2),
+                                                     Text('$lecturerId • $department', style: const TextStyle(color: Colors.amberAccent, fontSize: 12, fontWeight: FontWeight.w600)),
+                                                     const SizedBox(height: 4),
+                                                     Text(email, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                                   ],
+                                                 ),
+                                               ),
+                                             ],
+                                           ),
+                                         ),
+                                       ),
+                                       const SizedBox(height: 18),
 
                                       // Summary KPI Cards Grid (6 Cards)
                                       const Text('LECTURER METRICS OVERVIEW', style: TextStyle(color: Colors.amberAccent, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
@@ -757,6 +821,23 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                                               ),
                                             );
                                           }),
+                                          _buildActionTile('My Profile', Icons.person_rounded, Colors.amberAccent, () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => LecturerProfileScreen(userData: widget.userData),
+                                              ),
+                                            );
+                                          }),
+                                          _buildActionTile('Settings', Icons.settings_rounded, Colors.tealAccent, () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => LecturerSettingsScreen(userData: widget.userData),
+                                              ),
+                                            );
+                                          }),
+                                          _buildActionTile('Sign Out', Icons.logout_rounded, Colors.redAccent, _confirmSignOut),
                                         ],
                                       ),
                                       const SizedBox(height: 24),

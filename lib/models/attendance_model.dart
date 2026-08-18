@@ -14,6 +14,8 @@ class AttendanceModel {
   final String semester;
   final String? sessionTime;
   final String? hallName;
+  final String? sessionId;
+  final String? scanTime;
   final String? createdBy;
   final String? updatedBy;
 
@@ -31,6 +33,8 @@ class AttendanceModel {
     required this.semester,
     this.sessionTime,
     this.hallName,
+    this.sessionId,
+    this.scanTime,
     this.createdBy,
     this.updatedBy,
   });
@@ -49,6 +53,8 @@ class AttendanceModel {
       'semester': semester,
       'sessionTime': sessionTime,
       'hallName': hallName,
+      'sessionId': sessionId,
+      'scanTime': scanTime,
       'createdBy': createdBy,
       'updatedBy': updatedBy,
     };
@@ -70,6 +76,8 @@ class AttendanceModel {
       semester: data['semester'] ?? '',
       sessionTime: data['sessionTime'],
       hallName: data['hallName'],
+      sessionId: data['sessionId'],
+      scanTime: data['scanTime'],
       createdBy: data['createdBy'],
       updatedBy: data['updatedBy'],
     );

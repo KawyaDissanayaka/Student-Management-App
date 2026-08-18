@@ -5,6 +5,7 @@ import '../../models/enrollment_model.dart';
 import '../../models/attendance_model.dart';
 import '../../models/timetable_model.dart';
 import '../../services/attendance_service.dart';
+import 'lecturer_qr_session_screen.dart';
 
 class LecturerAttendanceView extends StatefulWidget {
   final SubjectModel subject;
@@ -88,6 +89,21 @@ class _LecturerAttendanceViewState extends State<LecturerAttendanceView> with Si
     final dateStr = _formatDate(_selectedDate);
 
     try {
+      // Check Admin Attendance Configuration
+      final config = await _attendanceService.getAttendanceConfig();
+      final bool enableManual = config['enableManualAttendance'] as bool? ?? true;
+
+      if (!enableManual) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Manual Attendance recording is restricted by Administrator Policy. Please start a Dynamic QR Session.'),
+            backgroundColor: Colors.orangeAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
       final List<AttendanceModel> records = [];
 
       for (var e in enrollments) {
@@ -273,6 +289,71 @@ class _LecturerAttendanceViewState extends State<LecturerAttendanceView> with Si
                                           ),
                                         ),
                                       ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    // Dynamic QR Attendance Session Trigger Banner
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF064E3B), Color(0xFF0F172A)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.tealAccent.withAlpha(90)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(color: Colors.teal.withAlpha(50), shape: BoxShape.circle),
+                                            child: const Icon(Icons.qr_code_2_rounded, size: 24, color: Colors.tealAccent),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          const Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Dynamic QR Attendance',
+                                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                                ),
+                                                Text(
+                                                  'Broadcast live QR for students to scan on their app',
+                                                  style: TextStyle(color: Colors.white70, fontSize: 11),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          ElevatedButton.icon(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => LecturerQrSessionScreen(
+                                                    subject: widget.subject,
+                                                    lecturerEmail: widget.lecturerEmail,
+                                                    lecturerName: widget.lecturerName,
+                                                    lecturerId: 'LEC-1001',
+                                                    preselectedSession: _selectedSession,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.tealAccent,
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                            ),
+                                            icon: const Icon(Icons.sensors_rounded, color: Colors.black, size: 16),
+                                            label: const Text(
+                                              'Start QR',
+                                              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                     const SizedBox(height: 12),
 
