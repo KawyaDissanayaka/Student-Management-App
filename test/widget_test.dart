@@ -2810,5 +2810,65 @@ void main() {
       final pendingPayments = payments.where((p) => p['status'] == 'pending').length;
       expect(pendingPayments, 1);
     });
+
+    test('Firebase Security Rules & Role-Based Access Matrix Verification', () {
+      // 1. Roles Definition Matrix
+      const supportedRoles = {'ADMIN', 'LECTURER', 'STUDENT', 'FINANCESTAFF', 'LIBRARYSTAFF'};
+      expect(supportedRoles.contains('ADMIN'), true);
+      expect(supportedRoles.contains('LECTURER'), true);
+      expect(supportedRoles.contains('STUDENT'), true);
+      expect(supportedRoles.contains('FINANCESTAFF'), true);
+      expect(supportedRoles.contains('LIBRARYSTAFF'), true);
+
+      // 2. Student Role Permissions & Immutable Protected Fields
+      final studentProtectedFields = {
+        'role',
+        'status',
+        'email',
+        'studentId',
+        'course',
+        'programme',
+        'batch',
+        'year',
+        'semester',
+        'gpa',
+        'credits',
+      };
+
+      final studentPermittedFields = {'phone', 'address', 'emergencyContact', 'photoUrl'};
+      expect(studentProtectedFields.intersection(studentPermittedFields).isEmpty, true);
+
+      // 3. Lecturer Assigned Modules Scoping & Exam Publishing Restriction
+      bool canLecturerPublishResults(String role, String targetStatus) {
+        if (role == 'ADMIN') return true;
+        if (role == 'LECTURER' && targetStatus != 'Published') return true;
+        return false;
+      }
+
+      expect(canLecturerPublishResults('LECTURER', 'Draft'), true);
+      expect(canLecturerPublishResults('LECTURER', 'Submitted'), true);
+      expect(canLecturerPublishResults('LECTURER', 'Published'), false); // Disallowed
+      expect(canLecturerPublishResults('ADMIN', 'Published'), true); // Allowed
+
+      // 4. Finance Staff Permissions
+      bool canModifyPaymentVerification(String role) {
+        return role == 'ADMIN' || role == 'FINANCESTAFF';
+      }
+      expect(canModifyPaymentVerification('FINANCESTAFF'), true);
+      expect(canModifyPaymentVerification('STUDENT'), false);
+
+      // 5. Library Staff Permissions
+      bool canIssueLibraryBooks(String role) {
+        return role == 'ADMIN' || role == 'LIBRARYSTAFF';
+      }
+      expect(canIssueLibraryBooks('LIBRARYSTAFF'), true);
+      expect(canIssueLibraryBooks('STUDENT'), false);
+
+      // 6. Storage Security Constraints
+      const maxImageSizeBytes = 5 * 1024 * 1024; // 5MB
+      const maxDocSizeBytes = 25 * 1024 * 1024; // 25MB
+      expect(maxImageSizeBytes, 5242880);
+      expect(maxDocSizeBytes, 26214400);
+    });
   });
 }

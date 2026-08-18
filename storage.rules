@@ -1,0 +1,70 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─── HELPER FUNCTIONS ───────────────────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isUserEmail(email) {
+      return isAuthenticated() && request.auth.token.email.lower() == email.lower();
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email.matches('admin.*') ||
+        request.auth.token.email == 'admin@system.com'
+      );
+    }
+
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*') &&
+             request.resource.size < 5 * 1024 * 1024; // 5MB max
+    }
+
+    function isValidDocument() {
+      return request.resource.size < 25 * 1024 * 1024; // 25MB max
+    }
+
+    // ─── 1. USER PROFILE PICTURES ───────────────────────────────────────────
+    match /profile_pictures/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if (isOwner(userId) || isAdmin()) && isValidImage();
+    }
+
+    // ─── 2. LECTURE MATERIALS & SLIDES ──────────────────────────────────────
+    match /materials/{subjectCode}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidDocument();
+    }
+
+    // ─── 3. ASSIGNMENT ATTACHMENTS ──────────────────────────────────────────
+    match /assignments/{subjectCode}/{assignmentId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidDocument();
+    }
+
+    // ─── 4. STUDENT ASSIGNMENT SUBMISSIONS ──────────────────────────────────
+    match /submissions/{assignmentId}/{studentEmail}/{fileName} {
+      allow read: if isUserEmail(studentEmail) || isAdmin() || isAuthenticated();
+      allow write: if (isUserEmail(studentEmail) || isAdmin()) && isValidDocument();
+    }
+
+    // ─── 5. PAYMENT BANK SLIPS & RECEIPTS ───────────────────────────────────
+    match /receipts/{paymentId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidDocument();
+    }
+
+    // ─── 6. GENERAL STORAGE ASSETS ──────────────────────────────────────────
+    match /general/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
