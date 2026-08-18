@@ -276,7 +276,7 @@ class _AdminExamResultsApprovalScreenState extends State<AdminExamResultsApprova
                   children: [
                     Expanded(child: _metricCard('Students', '$totalStudents', Colors.white, Icons.people_rounded)),
                     const SizedBox(width: 6),
-                    Expanded(child: _metricCard('Average', '$avgScore', Colors.amberAccent, Icons.analytics_rounded)),
+                    Expanded(child: _metricCard('Average', avgScore, Colors.amberAccent, Icons.analytics_rounded)),
                     const SizedBox(width: 6),
                     Expanded(child: _metricCard('Pass Rate', '$passRate%', Colors.tealAccent, Icons.percent_rounded)),
                     const SizedBox(width: 6),
@@ -309,7 +309,7 @@ class _AdminExamResultsApprovalScreenState extends State<AdminExamResultsApprova
               // 4. Marksheet List
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, bottom: 80),
+                  padding: const EdgeInsets.only(left: 14, right: 14, bottom: 80),
                   itemCount: filteredResults.length,
                   itemBuilder: (context, index) {
                     final item = filteredResults[index];

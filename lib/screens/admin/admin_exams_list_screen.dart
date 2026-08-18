@@ -831,7 +831,12 @@ class _AdminExamsListScreenState extends State<AdminExamsListScreen> {
                                         icon: const Icon(Icons.more_vert_rounded, color: Colors.white70, size: 20),
                                         color: const Color(0xFF0F172A),
                                         onSelected: (action) {
-                                          if (action == 'attendance') {
+                                          if (action == 'results') {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(builder: (context) => AdminExamResultsApprovalScreen(exam: exam)),
+                                            );
+                                          } else if (action == 'attendance') {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(builder: (context) => AdminExamAttendanceScreen(exam: exam)),
@@ -855,6 +860,7 @@ class _AdminExamsListScreenState extends State<AdminExamsListScreen> {
                                           }
                                         },
                                         itemBuilder: (ctx) => [
+                                          const PopupMenuItem(value: 'results', child: Text('Exam Results & Moderation', style: TextStyle(color: Colors.amberAccent))),
                                           const PopupMenuItem(value: 'attendance', child: Text('Exam Day Attendance', style: TextStyle(color: Colors.greenAccent))),
                                           const PopupMenuItem(value: 'seating', child: Text('Seating Plan & Desks', style: TextStyle(color: Colors.amberAccent))),
                                           const PopupMenuItem(value: 'registrations', child: Text('View Registered Students', style: TextStyle(color: Colors.cyanAccent))),

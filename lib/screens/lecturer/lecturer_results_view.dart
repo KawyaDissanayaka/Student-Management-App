@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/subject_model.dart';
 import '../../models/result_model.dart';
 import '../../models/enrollment_model.dart';
+import '../../models/exam_model.dart';
+import 'lecturer_exam_results_entry_screen.dart';
 
 class LecturerResultsView extends StatefulWidget {
   final SubjectModel subject;
@@ -468,7 +470,62 @@ class _LecturerResultsViewState extends State<LecturerResultsView> {
                             Expanded(child: _buildMetricCard('Range', '${highestMark.toInt()} / ${lowestMark.toInt()}', Colors.tealAccent, Icons.swap_vert_rounded)),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        // Exam Results & Approval Workflow Button Strip
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  // Fetch or create an exam reference for this subject
+                                  final examSnap = await _firestore
+                                      .collection('exams')
+                                      .where('subjectCode', isEqualTo: widget.subject.subjectCode)
+                                      .limit(1)
+                                      .get();
+
+                                  final ExamModel targetExam;
+                                  if (examSnap.docs.isNotEmpty) {
+                                    targetExam = ExamModel.fromFirestore(examSnap.docs.first);
+                                  } else {
+                                    targetExam = ExamModel(
+                                      examId: 'EXM-${widget.subject.subjectCode}',
+                                      subjectCode: widget.subject.subjectCode,
+                                      subjectName: widget.subject.subjectName,
+                                      examType: 'Final Examination',
+                                      date: DateTime.now().toIso8601String().substring(0, 10),
+                                      startTime: '09:00 AM',
+                                      endTime: '12:00 PM',
+                                      examHall: 'Main Exam Hall',
+                                      semester: widget.subject.semester,
+                                      academicYear: widget.subject.academicYear,
+                                    );
+                                  }
+
+                                  if (context.mounted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => LecturerExamResultsEntryScreen(
+                                          exam: targetExam,
+                                          lecturerEmail: widget.lecturerEmail,
+                                          lecturerName: widget.lecturerName,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal,
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                icon: const Icon(Icons.grading_rounded, color: Colors.white, size: 16),
+                                label: const Text('Exam Results & Admin Approval', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
 
                         // Search Bar & Lock Button
                         Row(
