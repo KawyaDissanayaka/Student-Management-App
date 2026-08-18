@@ -784,6 +784,90 @@ class AdminDashboard extends StatelessWidget {
                                                                   );
                                                                 },
                                                               ),
+                                                              _dashboardCard(
+                                                                icon: Icons.app_registration_rounded,
+                                                                title: 'Module Registrations',
+                                                                value: 'Approvals & Drop',
+                                                                color: Colors.cyanAccent,
+                                                                onTap: () {
+                                                                  Navigator.push(
+                                                                    context,
+                                                                    MaterialPageRoute(builder: (context) => const AdminModuleRegistrationsScreen()),
+                                                                  );
+                                                                },
+                                                              ),
+                                                              _dashboardCard(
+                                                                icon: Icons.account_balance_wallet_rounded,
+                                                                title: 'Fee Structures & Dues',
+                                                                value: 'Finance Management',
+                                                                color: Colors.greenAccent,
+                                                                onTap: () {
+                                                                  Navigator.push(
+                                                                    context,
+                                                                    MaterialPageRoute(builder: (context) => const AdminFeeStructuresScreen()),
+                                                                  );
+                                                                },
+                                                              ),
+                                                              _dashboardCard(
+                                                                icon: Icons.directions_bus_rounded,
+                                                                title: 'Transport Management',
+                                                                value: 'Routes & Buses',
+                                                                color: Colors.amberAccent,
+                                                                onTap: () {
+                                                                  Navigator.push(
+                                                                    context,
+                                                                    MaterialPageRoute(builder: (context) => const AdminTransportScreen()),
+                                                                  );
+                                                                },
+                                                              ),
+                                                              _dashboardCard(
+                                                                icon: Icons.business_rounded,
+                                                                title: 'Campus Facilities',
+                                                                value: 'Halls & Map',
+                                                                color: Colors.indigoAccent,
+                                                                onTap: () {
+                                                                  Navigator.push(
+                                                                    context,
+                                                                    MaterialPageRoute(builder: (context) => const AdminFacilitiesScreen()),
+                                                                  );
+                                                                },
+                                                              ),
+                                                              _dashboardCard(
+                                                                icon: Icons.local_library_rounded,
+                                                                title: 'Library System',
+                                                                value: 'Books & Loans',
+                                                                color: Colors.purpleAccent,
+                                                                onTap: () {
+                                                                  Navigator.push(
+                                                                    context,
+                                                                    MaterialPageRoute(builder: (context) => const AdminLibraryScreen()),
+                                                                  );
+                                                                },
+                                                              ),
+                                                              _dashboardCard(
+                                                                icon: Icons.summarize_rounded,
+                                                                title: 'Exam Reports & Export',
+                                                                value: 'CSV Analytics',
+                                                                color: Colors.lightBlueAccent,
+                                                                onTap: () {
+                                                                  Navigator.push(
+                                                                    context,
+                                                                    MaterialPageRoute(builder: (context) => const AdminExamReportsScreen()),
+                                                                  );
+                                                                },
+                                                              ),
+                                                              _dashboardCard(
+                                                                icon: Icons.tune_rounded,
+                                                                title: 'Attendance Config',
+                                                                value: '${threshold.toInt()}% Policy',
+                                                                color: Colors.tealAccent,
+                                                                onTap: () {
+                                                                  Navigator.push(
+                                                                    context,
+                                                                    MaterialPageRoute(builder: (context) => const AdminAttendanceSettingsScreen()),
+                                                                  );
+                                                                },
+                                                              ),
                                                             ],
                                                           ),
                                                         ],
