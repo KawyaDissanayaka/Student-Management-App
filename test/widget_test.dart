@@ -22,6 +22,7 @@ import 'package:student_management_app/models/fee_structure_model.dart';
 import 'package:student_management_app/models/module_registration_period_model.dart';
 import 'package:student_management_app/models/student_module_registration_model.dart';
 import 'package:student_management_app/models/notification_model.dart';
+import 'package:student_management_app/models/transport_model.dart';
 import 'package:student_management_app/services/exam_hall_service.dart';
 import 'package:student_management_app/services/exam_seating_service.dart';
 import 'package:student_management_app/services/exam_reports_service.dart';
@@ -2156,6 +2157,109 @@ void main() {
       expect(readNotif.isReadByUser('alice@uni.lk'), true);
       expect(readNotif.relatedId, 'ASG-101');
       expect(readNotif.relatedModuleId, 'CS101');
+    });
+
+    test('Transport Management Routes, Fleet, Schedule Conflicts & Preferences Rules', () {
+      // 1. Route & Stops Sequence
+      final route = TransportRouteModel(
+        routeId: 'RTE-101',
+        routeName: 'Colombo - Campus Express',
+        startPoint: 'Fort Railway Station',
+        destination: 'Main Campus',
+        distance: 28.5,
+        status: 'Active',
+        stops: [
+          TransportStopModel(stopId: 'STP-1', pointName: 'Fort Station', pickupTime: '06:30 AM', dropOffTime: '05:30 PM', sequence: 1),
+          TransportStopModel(stopId: 'STP-2', pointName: 'Bambalapitiya', pickupTime: '06:50 AM', dropOffTime: '05:10 PM', sequence: 2),
+          TransportStopModel(stopId: 'STP-3', pointName: 'Nugegoda Junction', pickupTime: '07:15 AM', dropOffTime: '04:45 PM', sequence: 3),
+        ],
+      );
+
+      expect(route.isActive, true);
+      expect(route.stops.length, 3);
+      expect(route.pickupPointNames, ['Fort Station', 'Bambalapitiya', 'Nugegoda Junction']);
+
+      // 2. Bus Fleet Statuses
+      final bus = TransportBusModel(
+        busId: 'BUS-101',
+        registrationNumber: 'WP NA-4521',
+        busNameOrNumber: 'Campus Cruiser 1',
+        capacity: 54,
+        driver: 'Kamal Silva',
+        contactNumber: '0771234567',
+        status: 'Available',
+      );
+
+      expect(bus.isAvailable, true);
+      expect(bus.capacity > 0, true);
+
+      // 3. Schedule Overlap & Bus Conflict Detection
+      final sched1 = TransportScheduleModel(
+        scheduleId: 'SCH-101',
+        routeId: 'RTE-101',
+        routeName: 'Colombo - Campus Express',
+        busId: 'BUS-101',
+        busRegistration: 'WP NA-4521',
+        operatingDays: ['Monday', 'Wednesday', 'Friday'],
+        departureTime: '06:30 AM',
+        arrivalTime: '08:15 AM',
+        status: 'Active',
+      );
+
+      // Candidate 1: Overlapping time (07:00 AM - 08:30 AM) on Wednesday with same bus -> CONFLICT!
+      final conflictingCandidate = TransportScheduleModel(
+        scheduleId: 'SCH-102',
+        routeId: 'RTE-102',
+        routeName: 'Kandy - Campus Shuttle',
+        busId: 'BUS-101',
+        busRegistration: 'WP NA-4521',
+        operatingDays: ['Wednesday', 'Thursday'],
+        departureTime: '07:00 AM',
+        arrivalTime: '08:30 AM',
+        status: 'Active',
+      );
+
+      expect(
+        TransportScheduleModel.isBusScheduleConflicting(
+          existing: sched1,
+          candidate: conflictingCandidate,
+        ),
+        true,
+      );
+
+      // Candidate 2: Non-overlapping time (02:00 PM - 03:30 PM) with same bus -> NO CONFLICT
+      final nonConflictingCandidate = TransportScheduleModel(
+        scheduleId: 'SCH-103',
+        routeId: 'RTE-102',
+        routeName: 'Kandy - Campus Shuttle',
+        busId: 'BUS-101',
+        busRegistration: 'WP NA-4521',
+        operatingDays: ['Monday', 'Wednesday'],
+        departureTime: '02:00 PM',
+        arrivalTime: '03:30 PM',
+        status: 'Active',
+      );
+
+      expect(
+        TransportScheduleModel.isBusScheduleConflicting(
+          existing: sched1,
+          candidate: nonConflictingCandidate,
+        ),
+        false,
+      );
+
+      // 4. Student Transport Preference Model
+      final pref = StudentTransportPreferenceModel(
+        studentId: 'STU-1001',
+        studentEmail: 'alice@uni.lk',
+        selectedRouteId: 'RTE-101',
+        selectedRouteName: 'Colombo - Campus Express',
+        selectedStopId: 'STP-2',
+        selectedStopName: 'Bambalapitiya',
+      );
+
+      expect(pref.studentId, 'STU-1001');
+      expect(pref.selectedStopName, 'Bambalapitiya');
     });
   });
 }

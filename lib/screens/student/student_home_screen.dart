@@ -425,7 +425,7 @@ class StudentHomeScreen extends StatelessWidget {
                                             Navigator.push(context, MaterialPageRoute(builder: (context) => const CampusMapScreen()));
                                           }),
                                           _buildServiceTile('Bus Shuttle', Icons.directions_bus_rounded, Colors.amberAccent, () {
-                                            Navigator.push(context, MaterialPageRoute(builder: (context) => const CampusTransportScreen()));
+                                            Navigator.push(context, MaterialPageRoute(builder: (context) => CampusTransportScreen(userData: userData)));
                                           }),
                                           _buildServiceTile('Facilities', Icons.apartment_rounded, Colors.lightBlueAccent, () {
                                             Navigator.push(context, MaterialPageRoute(builder: (context) => const CampusFacilitiesScreen()));

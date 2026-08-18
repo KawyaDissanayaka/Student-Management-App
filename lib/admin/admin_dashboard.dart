@@ -21,6 +21,7 @@ import '../screens/admin/admin_exam_reports_screen.dart';
 import '../screens/admin/admin_fee_structures_screen.dart';
 import '../screens/admin/admin_module_registration_screen.dart';
 import '../screens/admin/admin_module_registrations_screen.dart';
+import '../screens/admin/admin_transport_screen.dart';
 import '../screens/admin/halls_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
@@ -242,6 +243,17 @@ class AdminDashboard extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AdminFeeStructuresScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.directions_bus_rounded, color: Colors.tealAccent),
+              title: const Text('Transport & Fleet Management', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminTransportScreen()),
                 );
               },
             ),
