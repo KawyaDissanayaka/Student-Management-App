@@ -10,6 +10,7 @@ import '../../models/announcement_model.dart';
 import '../../models/timetable_model.dart';
 import '../../models/exam_result_model.dart';
 import '../../models/task_model.dart';
+import '../../models/submission_model.dart';
 
 class ModuleDetailScreen extends StatefulWidget {
   final String subjectCode;
@@ -362,54 +363,132 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(14),
-          itemCount: assignments.length,
-          itemBuilder: (context, index) {
-            final a = assignments[index];
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('submissions')
+              .where('studentEmail', isEqualTo: widget.studentEmail.trim().toLowerCase())
+              .snapshots(),
+          builder: (context, subSnapshot) {
+            final subDocs = subSnapshot.data?.docs ?? [];
+            final studentSubmissions = subDocs.map((d) => SubmissionModel.fromFirestore(d)).toList();
+
+            return ListView.builder(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white10),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              itemCount: assignments.length,
+              itemBuilder: (context, index) {
+                final a = assignments[index];
+                final sub = studentSubmissions.cast<SubmissionModel?>().firstWhere(
+                      (s) => s?.assignmentId == a.assignmentId,
+                      orElse: () => null,
+                    );
+
+                final isSubmitted = sub != null;
+                final isGraded = sub?.isGraded ?? false;
+                final isLate = sub?.isLate ?? false;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: isGraded ? Colors.green.withAlpha(80) : Colors.white10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: Colors.orange.withAlpha(30), borderRadius: BorderRadius.circular(6)),
-                        child: Text(a.assignmentId, style: const TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: Colors.orange.withAlpha(30), borderRadius: BorderRadius.circular(6)),
+                            child: Text(a.assignmentId, style: const TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: isGraded
+                                  ? Colors.green.withAlpha(30)
+                                  : (isLate
+                                      ? Colors.red.withAlpha(30)
+                                      : (isSubmitted ? Colors.cyan.withAlpha(30) : Colors.grey.withAlpha(30))),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              isGraded
+                                  ? 'GRADED'
+                                  : (isLate
+                                      ? 'LATE SUBMISSION'
+                                      : (isSubmitted ? 'SUBMITTED' : 'NOT SUBMITTED')),
+                              style: TextStyle(
+                                color: isGraded
+                                    ? Colors.greenAccent
+                                    : (isLate
+                                        ? Colors.redAccent
+                                        : (isSubmitted ? Colors.cyanAccent : Colors.grey)),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      Text('Due: ${a.dueDate}', style: const TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text(a.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text(a.description, style: const TextStyle(color: Colors.grey, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 6),
+                      Text('Due Date: ${a.dueDate} • Max Marks: ${a.totalMarks}', style: const TextStyle(color: Colors.amberAccent, fontSize: 11, fontWeight: FontWeight.w600)),
+
+                      // If graded, show marks and feedback
+                      if (isGraded && sub != null) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.greenAccent.withAlpha(50))),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Awarded Score: ${sub.marks ?? 0} / ${a.totalMarks}', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                                  Text('Graded by: ${sub.gradedBy ?? "Lecturer"}', style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                                ],
+                              ),
+                              if (sub.feedback != null && sub.feedback!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text('Feedback: "${sub.feedback}"', style: const TextStyle(color: Colors.white70, fontSize: 11, fontStyle: FontStyle.italic)),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 10),
+                      const Divider(color: Colors.white10, height: 1),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Semester: ${a.semester}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                          ElevatedButton.icon(
+                            onPressed: () => _showSubmitModal(context, a),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isSubmitted ? Colors.cyan[800] : Colors.teal,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            ),
+                            icon: Icon(isSubmitted ? Icons.edit_document : Icons.upload_file_rounded, size: 12, color: Colors.white),
+                            label: Text(isSubmitted ? 'Resubmit Work' : 'Submit Work', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(a.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                  const SizedBox(height: 4),
-                  Text(a.description, style: const TextStyle(color: Colors.grey, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 10),
-                  const Divider(color: Colors.white10, height: 1),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Semester: ${a.semester}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                      ElevatedButton.icon(
-                        onPressed: () => _showSubmitModal(context, a),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
-                        icon: const Icon(Icons.upload_file_rounded, size: 12, color: Colors.white),
-                        label: const Text('Submit Work', style: TextStyle(color: Colors.white, fontSize: 11)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
@@ -494,23 +573,43 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> with SingleTick
                           final nav = Navigator.of(ctx);
 
                           try {
-                            await FirebaseFirestore.instance.collection('submissions').add({
+                            final now = DateTime.now();
+                            final subStatus = SubmissionModel.determineSubmissionStatus(
+                              submittedAt: now,
+                              dueDate: assignment.dueDate,
+                            );
+
+                            final subData = {
+                              'submissionId': 'SUB-${DateTime.now().millisecondsSinceEpoch}',
                               'assignmentId': assignment.assignmentId,
                               'assignmentDocId': assignment.docId,
                               'assignmentTitle': assignment.title,
+                              'moduleId': widget.subjectCode,
                               'subjectCode': widget.subjectCode,
+                              'subjectName': widget.subjectName,
+                              'studentDocId': widget.studentId,
+                              'studentId': widget.studentId,
                               'studentEmail': widget.studentEmail.trim().toLowerCase(),
                               'studentName': widget.studentName,
-                              'submittedAt': DateTime.now().toIso8601String(),
+                              'submittedAt': now.toIso8601String(),
+                              'isLate': subStatus == 'Late',
                               'fileName': 'Assignment_Report_Final.pdf',
                               'fileSize': '2.8 MB',
+                              'fileUrl': 'https://firebasestorage.googleapis.com/v0/b/studentapp/o/submissions%2F${widget.subjectCode}%2F${assignment.assignmentId}%2F${widget.studentId}_Report.pdf?alt=media',
+                              'attachmentUrl': 'https://firebasestorage.googleapis.com/v0/b/studentapp/o/submissions%2F${widget.subjectCode}%2F${assignment.assignmentId}%2F${widget.studentId}_Report.pdf?alt=media',
                               'notes': noteController.text.trim(),
-                              'status': 'submitted',
-                            });
+                              'status': subStatus,
+                            };
+
+                            await FirebaseFirestore.instance.collection('submissions').add(subData);
+                            await FirebaseFirestore.instance.collection('assignmentSubmissions').add(subData);
 
                             nav.pop();
                             messenger.showSnackBar(
-                              const SnackBar(content: Text('Assignment submitted successfully!'), backgroundColor: Colors.green),
+                              SnackBar(
+                                content: Text('Assignment submitted successfully ($subStatus)!'),
+                                backgroundColor: subStatus == 'Late' ? Colors.orange : Colors.green,
+                              ),
                             );
                           } catch (e) {
                             setModalState(() => isUploading = false);

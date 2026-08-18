@@ -5,20 +5,22 @@ class TaskModel {
   final String taskId;
   final String title;
   final String description;
+  final String instructions;
+  final String moduleId; // subjectCode
+  final String? subjectCode;
+  final String? subjectName;
+  final String? subjectDocId;
   final String assignedToType; // 'student' | 'lecturer' | 'subject_students'
   final String assignedToDocId;
   final String assignedToName;
   final String assignedToEmail;
   final String assignedToId; // Student ID or Lecturer ID
   final String assignedBy;
-  final String priority; // 'low' | 'medium' | 'high' | 'urgent'
+  final String priority; // 'Low' | 'Medium' | 'High' | 'low' | 'medium' | 'high'
   final String startDate; // YYYY-MM-DD
   final String dueDate; // YYYY-MM-DD
   final String createdDate; // ISO string
-  final String status; // 'pending' | 'in_progress' | 'completed' | 'overdue' | 'deactivated'
-  final String? subjectCode;
-  final String? subjectName;
-  final String? subjectDocId;
+  final String status; // 'Draft' | 'Published' | 'Closed' | 'pending' | 'in_progress' | 'completed' | 'overdue'
   final String? lecturerId;
   final String? lecturerName;
   final List<String> assignedStudents; // list of student emails or ['ALL']
@@ -30,36 +32,46 @@ class TaskModel {
     this.docId,
     required this.taskId,
     required this.title,
-    required this.description,
-    this.assignedToType = 'student',
+    this.description = '',
+    this.instructions = '',
+    String? moduleId,
+    String? subjectCode,
+    this.subjectName,
+    this.subjectDocId,
+    this.assignedToType = 'subject_students',
     this.assignedToDocId = '',
     this.assignedToName = '',
     this.assignedToEmail = '',
     this.assignedToId = '',
     required this.assignedBy,
-    required this.priority,
+    this.priority = 'Medium',
     required this.startDate,
     required this.dueDate,
     required this.createdDate,
-    this.status = 'pending',
-    this.subjectCode,
-    this.subjectName,
-    this.subjectDocId,
+    this.status = 'Published',
     this.lecturerId,
     this.lecturerName,
     this.assignedStudents = const ['ALL'],
     this.attachmentUrl,
     this.completedAt,
     this.completedBy,
-  });
+  })  : moduleId = moduleId ?? subjectCode ?? '',
+        subjectCode = subjectCode ?? moduleId;
+
+  // Convenience & lifecycle getters
+  bool get isDraft => status.toLowerCase() == 'draft';
+  bool get isPublished => status.toLowerCase() == 'published';
+  bool get isClosed => status.toLowerCase() == 'closed';
+  bool get isCompleted => effectiveStatus == 'completed';
+  bool get isOverdue => effectiveStatus == 'overdue';
 
   /// Computed dynamic status:
   /// If status is 'completed' or 'deactivated', keep it. (Completed tasks NEVER become overdue!)
-  /// If incomplete ('pending' or 'in_progress') and today is after dueDate, return 'overdue'.
+  /// If incomplete ('pending' or 'in_progress' or 'published') and today is after dueDate, return 'overdue'.
   String get effectiveStatus {
     final s = status.toLowerCase();
     if (s == 'completed' || s == 'deactivated') {
-      return s;
+      return 'completed';
     }
     if (dueDate.isNotEmpty) {
       try {
@@ -70,7 +82,10 @@ class TaskModel {
         }
       } catch (_) {}
     }
-    return s;
+    if (s == 'in_progress' || s == 'inprogress') return 'in_progress';
+    if (s == 'draft') return 'draft';
+    if (s == 'closed') return 'closed';
+    return 'pending';
   }
 
   Map<String, dynamic> toMap() {
@@ -78,6 +93,11 @@ class TaskModel {
       'taskId': taskId,
       'title': title,
       'description': description,
+      'instructions': instructions,
+      'moduleId': moduleId,
+      'subjectCode': moduleId,
+      'subjectName': subjectName,
+      'subjectDocId': subjectDocId,
       'assignedToType': assignedToType,
       'assignedToDocId': assignedToDocId,
       'assignedToName': assignedToName,
@@ -89,72 +109,77 @@ class TaskModel {
       'dueDate': dueDate,
       'createdDate': createdDate,
       'status': status,
-      'subjectCode': subjectCode,
-      'subjectName': subjectName,
-      'subjectDocId': subjectDocId,
       'lecturerId': lecturerId,
       'lecturerName': lecturerName,
       'assignedStudents': assignedStudents,
       'attachmentUrl': attachmentUrl,
+      'attachment': attachmentUrl,
       'completedAt': completedAt,
       'completedBy': completedBy,
     };
   }
 
-  factory TaskModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? {};
+  factory TaskModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    final mod = data['moduleId'] ?? data['subjectCode'] ?? '';
+
     return TaskModel(
       docId: doc.id,
-      taskId: data['taskId'] ?? '',
+      taskId: data['taskId'] ?? doc.id,
       title: data['title'] ?? '',
       description: data['description'] ?? '',
-      assignedToType: data['assignedToType'] ?? 'student',
+      instructions: data['instructions'] ?? '',
+      moduleId: mod,
+      subjectCode: mod,
+      subjectName: data['subjectName'],
+      subjectDocId: data['subjectDocId'],
+      assignedToType: data['assignedToType'] ?? 'subject_students',
       assignedToDocId: data['assignedToDocId'] ?? '',
       assignedToName: data['assignedToName'] ?? '',
       assignedToEmail: data['assignedToEmail'] ?? '',
       assignedToId: data['assignedToId'] ?? '',
-      assignedBy: data['assignedBy'] ?? 'Admin',
-      priority: data['priority'] ?? 'medium',
+      assignedBy: data['assignedBy'] ?? 'Lecturer',
+      priority: data['priority'] ?? 'Medium',
       startDate: data['startDate'] ?? '',
       dueDate: data['dueDate'] ?? '',
       createdDate: data['createdDate'] ?? '',
-      status: data['status'] ?? 'pending',
-      subjectCode: data['subjectCode'],
-      subjectName: data['subjectName'],
-      subjectDocId: data['subjectDocId'],
+      status: data['status'] ?? 'Published',
       lecturerId: data['lecturerId'],
       lecturerName: data['lecturerName'],
       assignedStudents: List<String>.from(data['assignedStudents'] ?? ['ALL']),
-      attachmentUrl: data['attachmentUrl'],
+      attachmentUrl: data['attachment'] ?? data['attachmentUrl'],
       completedAt: data['completedAt'],
       completedBy: data['completedBy'],
     );
   }
 
   factory TaskModel.fromMap(Map<String, dynamic> map, {String? id}) {
+    final mod = map['moduleId'] ?? map['subjectCode'] ?? '';
     return TaskModel(
       docId: id,
       taskId: map['taskId'] ?? '',
       title: map['title'] ?? '',
       description: map['description'] ?? '',
-      assignedToType: map['assignedToType'] ?? 'student',
+      instructions: map['instructions'] ?? '',
+      moduleId: mod,
+      subjectCode: mod,
+      subjectName: map['subjectName'],
+      subjectDocId: map['subjectDocId'],
+      assignedToType: map['assignedToType'] ?? 'subject_students',
       assignedToDocId: map['assignedToDocId'] ?? '',
       assignedToName: map['assignedToName'] ?? '',
       assignedToEmail: map['assignedToEmail'] ?? '',
       assignedToId: map['assignedToId'] ?? '',
-      assignedBy: map['assignedBy'] ?? 'Admin',
-      priority: map['priority'] ?? 'medium',
+      assignedBy: map['assignedBy'] ?? 'Lecturer',
+      priority: map['priority'] ?? 'Medium',
       startDate: map['startDate'] ?? '',
       dueDate: map['dueDate'] ?? '',
       createdDate: map['createdDate'] ?? '',
-      status: map['status'] ?? 'pending',
-      subjectCode: map['subjectCode'],
-      subjectName: map['subjectName'],
-      subjectDocId: map['subjectDocId'],
+      status: map['status'] ?? 'Published',
       lecturerId: map['lecturerId'],
       lecturerName: map['lecturerName'],
       assignedStudents: List<String>.from(map['assignedStudents'] ?? ['ALL']),
-      attachmentUrl: map['attachmentUrl'],
+      attachmentUrl: map['attachment'] ?? map['attachmentUrl'],
       completedAt: map['completedAt'],
       completedBy: map['completedBy'],
     );

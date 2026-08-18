@@ -1762,5 +1762,96 @@ void main() {
       expect(MaterialModel.validateFileSize(25.1) != null, true);
       expect(MaterialModel.validateFileSize(0.0) != null, true);
     });
+
+    test('Assignment Creation, Submission & Grading Validation Rules', () {
+      // 1. Assignment Creation Validation (Dates & Marks)
+      final validAssignmentErr = AssignmentModel.validateAssignment(
+        title: 'Project Milestone 1',
+        startDate: '2026-08-01',
+        dueDate: '2026-08-20',
+        maxMarks: 100.0,
+      );
+      expect(validAssignmentErr, null);
+
+      final invalidDueDateErr = AssignmentModel.validateAssignment(
+        title: 'Project Milestone 1',
+        startDate: '2026-08-20',
+        dueDate: '2026-08-01', // Due date before start date
+        maxMarks: 100.0,
+      );
+      expect(invalidDueDateErr != null, true);
+      expect(invalidDueDateErr!.contains('Due date must be after start date'), true);
+
+      final invalidMarksErr = AssignmentModel.validateAssignment(
+        title: 'Project Milestone 1',
+        startDate: '2026-08-01',
+        dueDate: '2026-08-20',
+        maxMarks: 0.0, // Marks <= 0
+      );
+      expect(invalidMarksErr != null, true);
+      expect(invalidMarksErr!.contains('Maximum marks must be greater than 0'), true);
+
+      // 2. Automatic Late Submission Detection
+      final onTimeStatus = SubmissionModel.determineSubmissionStatus(
+        submittedAt: DateTime(2026, 8, 15, 14, 0),
+        dueDate: '2026-08-20',
+      );
+      expect(onTimeStatus, 'Submitted');
+
+      final lateStatus = SubmissionModel.determineSubmissionStatus(
+        submittedAt: DateTime(2026, 8, 22, 10, 0),
+        dueDate: '2026-08-20',
+      );
+      expect(lateStatus, 'Late');
+
+      // 3. Grading Score Bounds Validation (0 <= marks <= maxMarks)
+      expect(SubmissionModel.validateGradingMarks(marks: 85.0, maxMarks: 100.0), null);
+      expect(SubmissionModel.validateGradingMarks(marks: 0.0, maxMarks: 100.0), null);
+      expect(SubmissionModel.validateGradingMarks(marks: 100.0, maxMarks: 100.0), null);
+      expect(SubmissionModel.validateGradingMarks(marks: -5.0, maxMarks: 100.0) != null, true);
+      expect(SubmissionModel.validateGradingMarks(marks: 105.0, maxMarks: 100.0) != null, true);
+
+      // 4. Submission Model Lifecycle & Serialization
+      final sub = SubmissionModel(
+        submissionId: 'SUB-2026-101',
+        assignmentId: 'ASG-101',
+        assignmentTitle: 'Project Milestone 1',
+        moduleId: 'CS101',
+        studentId: 'STU-1001',
+        studentName: 'Alice',
+        studentEmail: 'alice@uni.lk',
+        submittedAt: '2026-08-15T14:00:00',
+        isLate: false,
+        fileName: 'Alice_Report.pdf',
+        fileUrl: 'https://firebasestorage.googleapis.com/v0/b/studentapp/o/submissions%2FCS101%2FASG-101%2FAlice_Report.pdf',
+        status: 'Submitted',
+      );
+
+      expect(sub.isSubmitted, true);
+      expect(sub.isGraded, false);
+
+      final gradedSub = SubmissionModel(
+        submissionId: sub.submissionId,
+        assignmentId: sub.assignmentId,
+        assignmentTitle: sub.assignmentTitle,
+        moduleId: sub.moduleId,
+        studentId: sub.studentId,
+        studentName: sub.studentName,
+        studentEmail: sub.studentEmail,
+        submittedAt: sub.submittedAt,
+        isLate: sub.isLate,
+        fileName: sub.fileName,
+        fileUrl: sub.fileUrl,
+        status: 'Graded',
+        marks: 92.5,
+        feedback: 'Excellent design diagrams and well-written explanation.',
+        gradedBy: 'Dr. Lee',
+        gradedAt: '2026-08-18T16:00:00',
+      );
+
+      expect(gradedSub.isGraded, true);
+      expect(gradedSub.marks, 92.5);
+      expect(gradedSub.feedback, 'Excellent design diagrams and well-written explanation.');
+    });
   });
 }

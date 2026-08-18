@@ -5,8 +5,9 @@ class AssignmentModel {
   final String assignmentId;
   final String title;
   final String description;
+  final String instructions;
   final String subjectDocId;
-  final String subjectCode;
+  final String moduleId; // subjectCode
   final String subjectName;
   final String lecturerName;
   final String? lecturerId;
@@ -14,11 +15,11 @@ class AssignmentModel {
   final String createdDate;
   final String startDate;
   final String dueDate;
-  final num totalMarks;
+  final num totalMarks; // maximumMarks
   final String? attachmentUrl;
   final String? fileType;
   final String? fileSize;
-  final String status; // draft | published | closed | deactivated
+  final String status; // 'Draft' | 'Published' | 'Closed' | 'draft' | 'published' | 'closed'
   final String semester;
   final String academicYear;
 
@@ -26,32 +27,77 @@ class AssignmentModel {
     this.docId,
     required this.assignmentId,
     required this.title,
-    required this.description,
-    required this.subjectDocId,
-    required this.subjectCode,
-    required this.subjectName,
-    required this.lecturerName,
+    this.description = '',
+    this.instructions = '',
+    this.subjectDocId = '',
+    String? moduleId,
+    String? subjectCode,
+    this.subjectName = '',
+    this.lecturerName = 'Unassigned',
     this.lecturerId,
-    required this.createdBy,
-    required this.createdDate,
+    this.createdBy = '',
+    this.createdDate = '',
     required this.startDate,
     required this.dueDate,
-    this.totalMarks = 100,
+    num? totalMarks,
+    num? maximumMarks,
     this.attachmentUrl,
     this.fileType,
     this.fileSize,
-    this.status = 'draft',
-    required this.semester,
-    required this.academicYear,
-  });
+    this.status = 'Published',
+    this.semester = 'Semester 1',
+    this.academicYear = '2025/2026',
+  })  : moduleId = moduleId ?? subjectCode ?? '',
+        totalMarks = totalMarks ?? maximumMarks ?? 100;
+
+  // Backwards compatibility & convenience getters
+  String get assignmentTitle => title;
+  String get subjectCode => moduleId;
+  double get maximumMarks => totalMarks.toDouble();
+  String? get attachment => attachmentUrl;
+
+  bool get isDraft => status.toLowerCase() == 'draft';
+  bool get isPublished => status.toLowerCase() == 'published';
+  bool get isClosed => status.toLowerCase() == 'closed';
+
+  /// Validates assignment fields
+  static String? validateAssignment({
+    required String title,
+    required String startDate,
+    required String dueDate,
+    required double maxMarks,
+  }) {
+    if (title.trim().isEmpty) {
+      return 'Assignment title is required';
+    }
+    if (maxMarks <= 0) {
+      return 'Maximum marks must be greater than 0';
+    }
+    if (startDate.isEmpty || dueDate.isEmpty) {
+      return 'Start date and due date are required';
+    }
+    try {
+      final start = DateTime.parse(startDate);
+      final due = DateTime.parse(dueDate);
+      if (due.isBefore(start)) {
+        return 'Due date must be after start date';
+      }
+    } catch (_) {
+      return 'Invalid date format. Use YYYY-MM-DD';
+    }
+    return null;
+  }
 
   Map<String, dynamic> toMap() {
     return {
       'assignmentId': assignmentId,
       'title': title,
+      'assignmentTitle': title,
       'description': description,
+      'instructions': instructions,
       'subjectDocId': subjectDocId,
-      'subjectCode': subjectCode,
+      'moduleId': moduleId,
+      'subjectCode': moduleId,
       'subjectName': subjectName,
       'lecturerName': lecturerName,
       'lecturerId': lecturerId,
@@ -60,7 +106,9 @@ class AssignmentModel {
       'startDate': startDate,
       'dueDate': dueDate,
       'totalMarks': totalMarks,
+      'maximumMarks': totalMarks,
       'attachmentUrl': attachmentUrl,
+      'attachment': attachmentUrl,
       'fileType': fileType,
       'fileSize': fileSize,
       'status': status,
@@ -69,15 +117,20 @@ class AssignmentModel {
     };
   }
 
-  factory AssignmentModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? {};
+  factory AssignmentModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    final mod = data['moduleId'] ?? data['subjectCode'] ?? '';
+    final tit = data['assignmentTitle'] ?? data['title'] ?? '';
+    final marks = (data['maximumMarks'] ?? data['totalMarks'] ?? 100) as num;
+
     return AssignmentModel(
       docId: doc.id,
-      assignmentId: data['assignmentId'] ?? '',
-      title: data['title'] ?? '',
+      assignmentId: data['assignmentId'] ?? doc.id,
+      title: tit,
       description: data['description'] ?? '',
+      instructions: data['instructions'] ?? '',
       subjectDocId: data['subjectDocId'] ?? '',
-      subjectCode: data['subjectCode'] ?? '',
+      moduleId: mod,
       subjectName: data['subjectName'] ?? '',
       lecturerName: data['lecturerName'] ?? 'Unassigned',
       lecturerId: data['lecturerId'],
@@ -85,24 +138,29 @@ class AssignmentModel {
       createdDate: data['createdDate'] ?? '',
       startDate: data['startDate'] ?? '',
       dueDate: data['dueDate'] ?? '',
-      totalMarks: data['totalMarks'] ?? 100,
-      attachmentUrl: data['attachmentUrl'],
+      totalMarks: marks,
+      attachmentUrl: data['attachment'] ?? data['attachmentUrl'],
       fileType: data['fileType'],
       fileSize: data['fileSize'],
-      status: data['status'] ?? 'draft',
+      status: data['status'] ?? 'Published',
       semester: data['semester'] ?? '',
       academicYear: data['academicYear'] ?? '',
     );
   }
 
   factory AssignmentModel.fromMap(Map<String, dynamic> map, {String? id}) {
+    final mod = map['moduleId'] ?? map['subjectCode'] ?? '';
+    final tit = map['assignmentTitle'] ?? map['title'] ?? '';
+    final marks = (map['maximumMarks'] ?? map['totalMarks'] ?? 100) as num;
+
     return AssignmentModel(
       docId: id,
       assignmentId: map['assignmentId'] ?? '',
-      title: map['title'] ?? '',
+      title: tit,
       description: map['description'] ?? '',
+      instructions: map['instructions'] ?? '',
       subjectDocId: map['subjectDocId'] ?? '',
-      subjectCode: map['subjectCode'] ?? '',
+      moduleId: mod,
       subjectName: map['subjectName'] ?? '',
       lecturerName: map['lecturerName'] ?? 'Unassigned',
       lecturerId: map['lecturerId'],
@@ -110,59 +168,13 @@ class AssignmentModel {
       createdDate: map['createdDate'] ?? '',
       startDate: map['startDate'] ?? '',
       dueDate: map['dueDate'] ?? '',
-      totalMarks: map['totalMarks'] ?? 100,
-      attachmentUrl: map['attachmentUrl'],
+      totalMarks: marks,
+      attachmentUrl: map['attachment'] ?? map['attachmentUrl'],
       fileType: map['fileType'],
       fileSize: map['fileSize'],
-      status: map['status'] ?? 'draft',
+      status: map['status'] ?? 'Published',
       semester: map['semester'] ?? '',
       academicYear: map['academicYear'] ?? '',
-    );
-  }
-
-  AssignmentModel copyWith({
-    String? docId,
-    String? assignmentId,
-    String? title,
-    String? description,
-    String? subjectDocId,
-    String? subjectCode,
-    String? subjectName,
-    String? lecturerName,
-    String? lecturerId,
-    String? createdBy,
-    String? createdDate,
-    String? startDate,
-    String? dueDate,
-    num? totalMarks,
-    String? attachmentUrl,
-    String? fileType,
-    String? fileSize,
-    String? status,
-    String? semester,
-    String? academicYear,
-  }) {
-    return AssignmentModel(
-      docId: docId ?? this.docId,
-      assignmentId: assignmentId ?? this.assignmentId,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      subjectDocId: subjectDocId ?? this.subjectDocId,
-      subjectCode: subjectCode ?? this.subjectCode,
-      subjectName: subjectName ?? this.subjectName,
-      lecturerName: lecturerName ?? this.lecturerName,
-      lecturerId: lecturerId ?? this.lecturerId,
-      createdBy: createdBy ?? this.createdBy,
-      createdDate: createdDate ?? this.createdDate,
-      startDate: startDate ?? this.startDate,
-      dueDate: dueDate ?? this.dueDate,
-      totalMarks: totalMarks ?? this.totalMarks,
-      attachmentUrl: attachmentUrl ?? this.attachmentUrl,
-      fileType: fileType ?? this.fileType,
-      fileSize: fileSize ?? this.fileSize,
-      status: status ?? this.status,
-      semester: semester ?? this.semester,
-      academicYear: academicYear ?? this.academicYear,
     );
   }
 }
