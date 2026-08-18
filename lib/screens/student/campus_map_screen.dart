@@ -1,73 +1,111 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/facility_model.dart';
 
 class CampusMapScreen extends StatefulWidget {
-  const CampusMapScreen({super.key});
+  final String? initialFacilityFilter;
+
+  const CampusMapScreen({super.key, this.initialFacilityFilter});
 
   @override
   State<CampusMapScreen> createState() => _CampusMapScreenState();
 }
 
 class _CampusMapScreenState extends State<CampusMapScreen> {
-  String _selectedCategory = 'All';
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  String _searchQuery = '';
+  String _selectedType = 'All';
+  String _selectedBuilding = 'All';
 
-  final List<Map<String, dynamic>> _buildings = [
-    {
-      'code': 'BLD-A',
-      'name': 'Main Administration Complex',
-      'category': 'Administration',
-      'floors': 'Ground + 3 Floors',
-      'facilities': ['Student Affairs', 'Examination Division', 'Dean\'s Office', 'Finance & Payments'],
-      'color': Colors.indigoAccent,
-    },
-    {
-      'code': 'BLD-B',
-      'name': 'Faculty of Computing & IT Block',
-      'category': 'Academic',
-      'floors': 'Ground + 4 Floors',
-      'facilities': ['AI Labs 01-04', 'Lecture Halls B101-B205', 'Cybersecurity Lab', 'Server Room'],
-      'color': Colors.tealAccent,
-    },
-    {
-      'code': 'BLD-C',
-      'name': 'Central Academic Library',
-      'category': 'Library',
-      'floors': 'Ground + 2 Floors',
-      'facilities': ['Digital Research Commons', 'Silent Study Pods', 'Book Lending', 'Discussion Rooms'],
-      'color': Colors.amberAccent,
-    },
-    {
-      'code': 'BLD-D',
-      'name': 'Engineering & Electronics Labs',
-      'category': 'Academic',
-      'floors': 'Ground + 3 Floors',
-      'facilities': ['Robotics Lab', 'Circuits & Embedded Systems', 'Makerspace 3D Printing', 'Workshop'],
-      'color': Colors.cyanAccent,
-    },
-    {
-      'code': 'BLD-E',
-      'name': 'Student Life Center & Cafeteria',
-      'category': 'Amenities',
-      'floors': 'Ground + 1 Floor',
-      'facilities': ['Food Court', 'Student Lounge', 'ATM & Bank Kiosk', 'Stationery Store'],
-      'color': Colors.orangeAccent,
-    },
-    {
-      'code': 'BLD-F',
-      'name': 'Indoor Sports Arena & Gymnasium',
-      'category': 'Sports',
-      'floors': 'Ground + 1 Floor',
-      'facilities': ['Badminton Courts', 'Fitness Gym', 'Table Tennis Arena', 'Locker Rooms'],
-      'color': Colors.greenAccent,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialFacilityFilter != null) {
+      _searchQuery = widget.initialFacilityFilter!.toLowerCase();
+    }
+  }
+
+  void _showFacilityMapModal(BuildContext context, FacilityModel fac) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.location_on_rounded, color: Colors.tealAccent),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                fac.name,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${fac.building} • ${fac.floor}', style: const TextStyle(color: Colors.amberAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+            Text('Room: ${fac.roomNumber.isNotEmpty ? fac.roomNumber : "N/A"} • Capacity: ${fac.capacity} seats', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            const SizedBox(height: 6),
+            Text('Type: ${fac.type} • Status: ${fac.status}', style: const TextStyle(color: Colors.tealAccent, fontSize: 11)),
+            if (fac.description.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(fac.description, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ],
+            const SizedBox(height: 14),
+
+            // Map Coordinates Container
+            Container(
+              width: double.infinity,
+              height: 140,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.tealAccent.withAlpha(80)),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: 0.15,
+                      child: GridPaper(
+                        color: Colors.tealAccent,
+                        divisions: 2,
+                        subdivisions: 2,
+                      ),
+                    ),
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.pin_drop_rounded, size: 36, color: Colors.redAccent),
+                      const SizedBox(height: 4),
+                      Text(fac.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                      Text(fac.location, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _buildings.where((b) {
-      if (_selectedCategory == 'All') return true;
-      return b['category'] == _selectedCategory;
-    }).toList();
-
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
@@ -81,142 +119,172 @@ class _CampusMapScreenState extends State<CampusMapScreen> {
           children: [
             Icon(Icons.map_rounded, color: Colors.tealAccent),
             SizedBox(width: 8),
-            Text('Campus Navigation Map', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text('Campus Navigation Map & Facilities', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
       ),
-      body: Column(
-        children: [
-          // Filter Chips
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-            color: const Color(0xFF1E293B),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: ['All', 'Academic', 'Administration', 'Library', 'Amenities', 'Sports'].map((cat) {
-                  final isSel = cat == _selectedCategory;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(cat),
-                      selected: isSel,
-                      onSelected: (val) {
-                        if (val) setState(() => _selectedCategory = cat);
-                      },
-                      selectedColor: Colors.teal,
-                      backgroundColor: const Color(0xFF0F172A),
-                      labelStyle: TextStyle(
-                        color: isSel ? Colors.white : Colors.grey,
-                        fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                        fontSize: 12,
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _firestore.collection('facilities').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: Colors.tealAccent));
+          }
+
+          final docs = snapshot.data?.docs ?? [];
+          final allFacilities = docs.map((d) => FacilityModel.fromFirestore(d)).toList();
+
+          final buildings = {'All', ...allFacilities.map((f) => f.building)}.toList();
+
+          final filtered = allFacilities.where((f) {
+            final matchesSearch = f.name.toLowerCase().contains(_searchQuery) ||
+                f.building.toLowerCase().contains(_searchQuery) ||
+                f.roomNumber.toLowerCase().contains(_searchQuery);
+            final matchesType = _selectedType == 'All' || f.type == _selectedType;
+            final matchesBuilding = _selectedBuilding == 'All' || f.building == _selectedBuilding;
+
+            return matchesSearch && matchesType && matchesBuilding;
+          }).toList();
+
+          return Column(
+            children: [
+              // Search & Filter Header
+              Container(
+                padding: const EdgeInsets.all(12),
+                color: const Color(0xFF1E293B),
+                child: Column(
+                  children: [
+                    TextField(
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Search halls, labs, library, canteen...',
+                        hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+                        prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
+                        filled: true,
+                        fillColor: const Color(0xFF0F172A),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                       ),
-                      side: BorderSide(color: isSel ? Colors.tealAccent : Colors.white10),
+                      onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
+                    const SizedBox(height: 8),
 
-          // Visual Campus Grid & Building Directory
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                // Campus Map Visual Overview Card
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1E293B), Color(0xFF334155)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.tealAccent.withAlpha(80)),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.explore_rounded, color: Colors.tealAccent, size: 20),
-                          SizedBox(width: 8),
-                          Text('MAIN UNIVERSITY CAMPUS GROUNDS', style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
-                        ],
-                      ),
-                      SizedBox(height: 6),
-                      Text('Navigate across academic halls, computing blocks, laboratories, and student service hubs.', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-
-                const Text('Campus Zones & Buildings', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-
-                ...filtered.map((b) {
-                  final color = b['color'] as Color;
-                  final facilities = b['facilities'] as List<String>;
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: color.withAlpha(30),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: color.withAlpha(80)),
-                              ),
-                              child: Text(
-                                b['code'],
-                                style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11),
-                              ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: ['All', ...FacilityModel.supportedTypes].map((t) {
+                          final isSel = _selectedType == t;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: ChoiceChip(
+                              label: Text(t, style: TextStyle(color: isSel ? Colors.black : Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                              selected: isSel,
+                              selectedColor: Colors.tealAccent,
+                              backgroundColor: const Color(0xFF0F172A),
+                              onSelected: (sel) {
+                                if (sel) setState(() => _selectedType = t);
+                              },
                             ),
-                            Text(b['floors'], style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(b['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        const SizedBox(height: 4),
-                        Text('Zone: ${b['category']}', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 12),
-                        const Divider(color: Colors.white10, height: 1),
-                        const SizedBox(height: 10),
-                        const Text('Key Facilities Inside:', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: facilities.map((f) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(6)),
-                              child: Text(f, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    if (buildings.length > 2) ...[
+                      const SizedBox(height: 6),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: buildings.map((b) {
+                            final isSel = _selectedBuilding == b;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ChoiceChip(
+                                label: Text(b, style: TextStyle(color: isSel ? Colors.black : Colors.white70, fontSize: 10)),
+                                selected: isSel,
+                                selectedColor: Colors.amberAccent,
+                                backgroundColor: const Color(0xFF0F172A),
+                                onSelected: (sel) {
+                                  if (sel) setState(() => _selectedBuilding = b);
+                                },
+                              ),
                             );
                           }).toList(),
                         ),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              // Facilities List / Map Directory
+              Expanded(
+                child: filtered.isEmpty
+                    ? const Center(child: Text('No campus facilities match search.', style: TextStyle(color: Colors.grey)))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(14),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final fac = filtered[index];
+                          Color stColor = Colors.greenAccent;
+                          if (fac.status == 'Maintenance') stColor = Colors.orangeAccent;
+                          if (fac.status == 'Closed') stColor = Colors.redAccent;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E293B),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(color: Colors.teal.withAlpha(30), borderRadius: BorderRadius.circular(6)),
+                                      child: Text(fac.type.toUpperCase(), style: const TextStyle(color: Colors.tealAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(color: stColor.withAlpha(30), borderRadius: BorderRadius.circular(6)),
+                                      child: Text(fac.status.toUpperCase(), style: TextStyle(color: stColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(fac.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                                const SizedBox(height: 4),
+                                Text('${fac.building} • ${fac.floor} • Room ${fac.roomNumber}', style: const TextStyle(color: Colors.amberAccent, fontSize: 12)),
+                                const SizedBox(height: 4),
+                                Text('Location: ${fac.location}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                                const SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: () => _showFacilityMapModal(context, fac),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.teal,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                      ),
+                                      icon: const Icon(Icons.pin_drop_rounded, size: 14, color: Colors.white),
+                                      label: const Text('View on Map', style: TextStyle(color: Colors.white, fontSize: 11)),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

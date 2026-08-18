@@ -23,6 +23,7 @@ import 'package:student_management_app/models/module_registration_period_model.d
 import 'package:student_management_app/models/student_module_registration_model.dart';
 import 'package:student_management_app/models/notification_model.dart';
 import 'package:student_management_app/models/transport_model.dart';
+import 'package:student_management_app/models/facility_model.dart';
 import 'package:student_management_app/services/exam_hall_service.dart';
 import 'package:student_management_app/services/exam_seating_service.dart';
 import 'package:student_management_app/services/exam_reports_service.dart';
@@ -2260,6 +2261,79 @@ void main() {
 
       expect(pref.studentId, 'STU-1001');
       expect(pref.selectedStopName, 'Bambalapitiya');
+    });
+
+    test('Campus Facilities Management, Map Directory & Venue Resolution Rules', () {
+      // 1. Supported Types & Statuses
+      expect(FacilityModel.supportedTypes.contains('Lecture Hall'), true);
+      expect(FacilityModel.supportedTypes.contains('Laboratory'), true);
+      expect(FacilityModel.supportedTypes.contains('Examination Hall'), true);
+      expect(FacilityModel.supportedTypes.contains('Library'), true);
+      expect(FacilityModel.supportedTypes.contains('Canteen'), true);
+      expect(FacilityModel.supportedTypes.contains('Office'), true);
+      expect(FacilityModel.supportedTypes.contains('Student Service'), true);
+
+      expect(FacilityModel.supportedStatuses, ['Available', 'Maintenance', 'Closed']);
+
+      // 2. Facility Serialization & Attributes
+      final fac = FacilityModel(
+        facilityId: 'FAC-101',
+        name: 'Computing Lab 01',
+        type: 'Laboratory',
+        building: 'Faculty of Computing Block',
+        floor: '2nd Floor',
+        roomNumber: 'B-204',
+        description: 'Advanced Cloud & AI Workstations',
+        location: 'North Wing (Lat: 6.9271, Lng: 79.8612)',
+        capacity: 65,
+        status: 'Available',
+      );
+
+      expect(fac.isAvailable, true);
+      expect(fac.capacity > 0, true);
+      expect(fac.toMap()['roomNumber'], 'B-204');
+      expect(fac.toMap()['type'], 'Laboratory');
+
+      // 3. Search and Filtering Criteria Simulation
+      final facilitiesList = [
+        fac,
+        FacilityModel(
+          facilityId: 'FAC-102',
+          name: 'Main Examination Hall A',
+          type: 'Examination Hall',
+          building: 'Main Exam Complex',
+          floor: 'Ground Floor',
+          roomNumber: 'EX-01',
+          capacity: 250,
+          status: 'Available',
+        ),
+        FacilityModel(
+          facilityId: 'FAC-103',
+          name: 'Central Academic Library',
+          type: 'Library',
+          building: 'Library Complex',
+          floor: '1st Floor',
+          roomNumber: 'LIB-01',
+          capacity: 120,
+          status: 'Maintenance',
+        ),
+      ];
+
+      // Filter by Type
+      final examHalls = facilitiesList.where((f) => f.type == 'Examination Hall').toList();
+      expect(examHalls.length, 1);
+      expect(examHalls.first.name, 'Main Examination Hall A');
+
+      // Filter by Keyword (e.g. "Computing")
+      final searchResult = facilitiesList.where((f) => f.name.toLowerCase().contains('computing') || f.building.toLowerCase().contains('computing')).toList();
+      expect(searchResult.length, 1);
+      expect(searchResult.first.facilityId, 'FAC-101');
+
+      // 4. Timetable & Exam Hall cross-resolution
+      final timetableHallName = 'Computing Lab 01';
+      final matchingTimetableFacility = facilitiesList.firstWhere((f) => f.name.toLowerCase() == timetableHallName.toLowerCase());
+      expect(matchingTimetableFacility.building, 'Faculty of Computing Block');
+      expect(matchingTimetableFacility.floor, '2nd Floor');
     });
   });
 }

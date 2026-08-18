@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/exam_registration_model.dart';
 import '../../models/exam_seating_model.dart';
 import '../../models/exam_hall_model.dart';
+import 'campus_map_screen.dart';
 
 class StudentExamAdmissionCardScreen extends StatelessWidget {
   final String studentName;
@@ -254,12 +255,24 @@ class StudentExamAdmissionCardScreen extends StatelessWidget {
                                   const SizedBox(height: 6),
                                   Text(reg.subjectName, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13)),
                                   const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.meeting_room_outlined, size: 14, color: Colors.black54),
-                                      const SizedBox(width: 4),
-                                      Text('$venue • $building', style: const TextStyle(color: Colors.black87, fontSize: 11)),
-                                    ],
+                                  InkWell(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => CampusMapScreen(initialFacilityFilter: venue),
+                                        ),
+                                      );
+                                    },
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.pin_drop_rounded, size: 14, color: Colors.teal),
+                                        const SizedBox(width: 4),
+                                        Text('$venue • $building', style: const TextStyle(color: Colors.teal, fontSize: 11, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                                        const SizedBox(width: 4),
+                                        const Text('(Map)', style: TextStyle(color: Colors.black54, fontSize: 10)),
+                                      ],
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   Row(

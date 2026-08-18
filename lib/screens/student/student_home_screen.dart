@@ -335,36 +335,54 @@ class StudentHomeScreen extends StatelessWidget {
                                         ...timetable.take(2).map((t) {
                                           return Container(
                                             margin: const EdgeInsets.only(bottom: 10),
-                                            padding: const EdgeInsets.all(14),
                                             decoration: BoxDecoration(
                                               color: const Color(0xFF1E293B),
                                               borderRadius: BorderRadius.circular(14),
                                               border: Border.all(color: Colors.white10),
                                             ),
-                                            child: Row(
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets.all(10),
-                                                  decoration: BoxDecoration(color: Colors.cyan.withAlpha(30), borderRadius: BorderRadius.circular(10)),
-                                                  child: const Icon(Icons.class_rounded, color: Colors.cyanAccent, size: 20),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(t.subjectName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                                                      const SizedBox(height: 2),
-                                                      Text('${t.dayOfWeek} • ${t.startTime} - ${t.endTime} • ${t.hall}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                                    ],
+                                            child: InkWell(
+                                              borderRadius: BorderRadius.circular(14),
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => CampusMapScreen(initialFacilityFilter: t.hall),
                                                   ),
+                                                );
+                                              },
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(12),
+                                                child: Row(
+                                                  children: [
+                                                    Container(
+                                                      padding: const EdgeInsets.all(10),
+                                                      decoration: BoxDecoration(color: Colors.cyan.withAlpha(30), borderRadius: BorderRadius.circular(10)),
+                                                      child: const Icon(Icons.class_rounded, color: Colors.cyanAccent, size: 20),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(t.subjectName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                                          const SizedBox(height: 2),
+                                                          Row(
+                                                            children: [
+                                                              Text('${t.dayOfWeek} • ${t.startTime} - ${t.endTime} • ', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                                              Text(t.hall, style: const TextStyle(color: Colors.tealAccent, fontSize: 12, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                      decoration: BoxDecoration(color: Colors.teal.withAlpha(30), borderRadius: BorderRadius.circular(6)),
+                                                      child: Text(t.mode.toUpperCase(), style: const TextStyle(color: Colors.tealAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                    ),
+                                                  ],
                                                 ),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                  decoration: BoxDecoration(color: Colors.teal.withAlpha(30), borderRadius: BorderRadius.circular(6)),
-                                                  child: Text(t.mode.toUpperCase(), style: const TextStyle(color: Colors.tealAccent, fontSize: 10, fontWeight: FontWeight.bold)),
-                                                ),
-                                              ],
+                                              ),
                                             ),
                                           );
                                         }),

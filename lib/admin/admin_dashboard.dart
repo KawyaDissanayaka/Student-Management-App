@@ -22,6 +22,7 @@ import '../screens/admin/admin_fee_structures_screen.dart';
 import '../screens/admin/admin_module_registration_screen.dart';
 import '../screens/admin/admin_module_registrations_screen.dart';
 import '../screens/admin/admin_transport_screen.dart';
+import '../screens/admin/admin_facilities_screen.dart';
 import '../screens/admin/halls_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
@@ -254,6 +255,17 @@ class AdminDashboard extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AdminTransportScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.business_rounded, color: Colors.indigoAccent),
+              title: const Text('Campus Facilities & Halls', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminFacilitiesScreen()),
                 );
               },
             ),
