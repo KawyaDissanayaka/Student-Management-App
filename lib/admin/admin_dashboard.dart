@@ -19,6 +19,7 @@ import '../screens/admin/admin_exams_list_screen.dart';
 import '../screens/admin/admin_exam_registrations_screen.dart';
 import '../screens/admin/admin_exam_reports_screen.dart';
 import '../screens/admin/admin_fee_structures_screen.dart';
+import '../screens/admin/admin_module_registration_screen.dart';
 import '../screens/admin/halls_list_screen.dart';
 import '../auth/login_screen.dart';
 import '../services/auth_service.dart';
@@ -141,6 +142,17 @@ class AdminDashboard extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const SubjectsListScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.app_registration_rounded, color: Colors.cyanAccent),
+              title: const Text('Module Registration Periods', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminModuleRegistrationScreen()),
                 );
               },
             ),

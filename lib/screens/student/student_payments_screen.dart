@@ -3,6 +3,7 @@ import '../../services/student_portal_service.dart';
 import '../../services/fee_service.dart';
 import '../../models/payment_model.dart';
 import '../../models/fee_structure_model.dart';
+import '../../services/payment_gateway_service.dart';
 import 'student_payment_receipt_modal.dart';
 
 class StudentPaymentsScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class StudentPaymentsScreen extends StatefulWidget {
 class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
   final StudentPortalService _portalService = StudentPortalService();
   final FeeService _feeService = FeeService();
+  final PaymentGatewayService _gatewayService = PaymentGatewayService();
 
   void _showMakePaymentModal(BuildContext context, double currentBalance, List<FeeStructureModel> feeItems) {
     final amountController = TextEditingController(text: currentBalance > 0 ? '${currentBalance.toInt()}' : '50000');
@@ -24,8 +26,9 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
     final expiryController = TextEditingController(text: '08/29');
     final cvvController = TextEditingController(text: '342');
     String selectedFeeType = feeItems.isNotEmpty ? feeItems.first.feeType : 'Semester Fee';
-    String selectedPaymentMethod = 'Online Card (Visa/MasterCard)';
+    String selectedPaymentMethod = 'Online Card (Sandbox Gateway)';
     bool isProcessing = false;
+    bool isPayingFull = true;
 
     showModalBottomSheet(
       context: context,
@@ -33,208 +36,296 @@ class _StudentPaymentsScreenState extends State<StudentPaymentsScreen> {
       backgroundColor: const Color(0xFF1E293B),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        builder: (context, setModalState) {
+          final enteredAmt = double.tryParse(amountController.text.trim()) ?? (isPayingFull ? currentBalance : 0.0);
+          final remainingBalance = (currentBalance - enteredAmt).clamp(0.0, currentBalance);
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.credit_card_rounded, color: Colors.tealAccent),
-                      SizedBox(width: 8),
-                      Text('Online Payment Gateway', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                      const Row(
+                        children: [
+                          Icon(Icons.credit_card_rounded, color: Colors.tealAccent),
+                          SizedBox(width: 8),
+                          Text('Online Payment Gateway', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () => Navigator.pop(ctx)),
                     ],
                   ),
-                  IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () => Navigator.pop(ctx)),
-                ],
-              ),
-              const SizedBox(height: 14),
+                  const SizedBox(height: 12),
 
-              // Fee Type Selector
-              DropdownButtonFormField<String>(
-                initialValue: selectedFeeType,
-                dropdownColor: const Color(0xFF0F172A),
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                decoration: InputDecoration(
-                  labelText: 'Payment Category',
-                  labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
-                  filled: true,
-                  fillColor: const Color(0xFF0F172A),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                items: FeeStructureModel.supportedFeeTypes.map((type) {
-                  return DropdownMenuItem(value: type, child: Text(type));
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) setModalState(() => selectedFeeType = val);
-                },
-              ),
-              const SizedBox(height: 12),
+                  // ─── 1. PRE-PAYMENT SUMMARY CONTAINER ─────────────────────
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.teal.withAlpha(50)),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Current Balance:', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                            Text('LKR ${currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Amount to Pay:', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                            Text('LKR ${enteredAmt.toStringAsFixed(2)}', style: const TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Remaining After Payment:', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                            Text('LKR ${remainingBalance.toStringAsFixed(2)}', style: TextStyle(color: remainingBalance == 0 ? Colors.greenAccent : Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
-              // Payment Method Selector
-              DropdownButtonFormField<String>(
-                initialValue: selectedPaymentMethod,
-                dropdownColor: const Color(0xFF0F172A),
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                decoration: InputDecoration(
-                  labelText: 'Payment Method',
-                  labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
-                  filled: true,
-                  fillColor: const Color(0xFF0F172A),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'Online Card (Visa/MasterCard)', child: Text('Online Card (Visa / MasterCard)')),
-                  DropdownMenuItem(value: 'Bank Transfer', child: Text('Direct Bank Transfer / Slip')),
-                  DropdownMenuItem(value: 'Mobile Wallet', child: Text('Mobile Wallet (eZ Cash / Genie)')),
-                ],
-                onChanged: (val) {
-                  if (val != null) setModalState(() => selectedPaymentMethod = val);
-                },
-              ),
-              const SizedBox(height: 12),
+                  // Mode Selector: Pay Full vs Custom
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setModalState(() {
+                              isPayingFull = true;
+                              amountController.text = currentBalance > 0 ? '${currentBalance.toInt()}' : '0';
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: isPayingFull ? Colors.tealAccent : Colors.white24),
+                            backgroundColor: isPayingFull ? Colors.teal.withAlpha(30) : Colors.transparent,
+                          ),
+                          child: const Text('Pay Full Balance', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setModalState(() => isPayingFull = false);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: !isPayingFull ? Colors.tealAccent : Colors.white24),
+                            backgroundColor: !isPayingFull ? Colors.teal.withAlpha(30) : Colors.transparent,
+                          ),
+                          child: const Text('Custom Amount', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
 
-              // Amount Field
-              TextField(
-                controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Payment Amount (LKR)',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  prefixIcon: const Icon(Icons.payments_outlined, color: Colors.tealAccent),
-                  filled: true,
-                  fillColor: const Color(0xFF0F172A),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(height: 12),
+                  // Fee Type Selector
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedFeeType,
+                    dropdownColor: const Color(0xFF0F172A),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: InputDecoration(
+                      labelText: 'Payment Category',
+                      labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+                      filled: true,
+                      fillColor: const Color(0xFF0F172A),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    items: FeeStructureModel.supportedFeeTypes.map((type) {
+                      return DropdownMenuItem(value: type, child: Text(type));
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setModalState(() => selectedFeeType = val);
+                    },
+                  ),
+                  const SizedBox(height: 10),
 
-              // Card details
-              TextField(
-                controller: cardNoController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Card Number / Account Ref',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  prefixIcon: const Icon(Icons.credit_card, color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF0F172A),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(height: 12),
+                  // Amount Field (validated: >0 and <= currentBalance)
+                  TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      labelText: 'Payment Amount (LKR)',
+                      labelStyle: const TextStyle(color: Colors.grey),
+                      prefixIcon: const Icon(Icons.payments_outlined, color: Colors.tealAccent),
+                      filled: true,
+                      fillColor: const Color(0xFF0F172A),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onChanged: (val) => setModalState(() {}),
+                  ),
+                  const SizedBox(height: 10),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: expiryController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        labelText: 'MM/YY',
-                        labelStyle: const TextStyle(color: Colors.grey),
-                        filled: true,
-                        fillColor: const Color(0xFF0F172A),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  // Card details (Sandbox Mock Gateway)
+                  TextField(
+                    controller: cardNoController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Sandbox Card Number / Token',
+                      labelStyle: const TextStyle(color: Colors.grey),
+                      prefixIcon: const Icon(Icons.credit_card, color: Colors.grey),
+                      filled: true,
+                      fillColor: const Color(0xFF0F172A),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: expiryController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            labelText: 'MM/YY',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            filled: true,
+                            fillColor: const Color(0xFF0F172A),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: cvvController,
+                          obscureText: true,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            labelText: 'CVV',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            filled: true,
+                            fillColor: const Color(0xFF0F172A),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Pay Securely Action Button with Two-Phase Backend Verification
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: isProcessing
+                          ? null
+                          : () async {
+                              final amt = double.tryParse(amountController.text.trim()) ?? 0.0;
+                              final validationError = PaymentModel.validatePaymentAmount(
+                                amount: amt,
+                                currentBalance: currentBalance,
+                              );
+
+                              if (validationError != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(validationError), backgroundColor: Colors.redAccent),
+                                );
+                                return;
+                              }
+
+                              setModalState(() => isProcessing = true);
+                              final messenger = ScaffoldMessenger.of(context);
+                              final nav = Navigator.of(ctx);
+
+                              final email = widget.userData?['email'] ?? '';
+                              final studentId = widget.userData?['studentId'] ?? 'STU-1002';
+                              final studentName = widget.userData?['fullName'] ?? widget.userData?['name'] ?? 'Student';
+
+                              try {
+                                // 1. Phase 1: Create Pending Record
+                                final pendingPayment = await _gatewayService.initiatePayment(
+                                  studentEmail: email,
+                                  studentId: studentId,
+                                  studentName: studentName,
+                                  feeType: selectedFeeType,
+                                  amount: amt,
+                                  currentBalance: currentBalance,
+                                  paymentMethod: selectedPaymentMethod,
+                                );
+
+                                // 2. Phase 2: Gateway Execution & Trusted Verification
+                                final verificationResult = await _gatewayService.processAndVerifyPayment(
+                                  pendingPayment: pendingPayment,
+                                  cardNumber: cardNoController.text.trim(),
+                                  expiryDate: expiryController.text.trim(),
+                                  cvv: cvvController.text.trim(),
+                                );
+
+                                if (verificationResult.isSuccess && verificationResult.verifiedPayment != null) {
+                                  nav.pop();
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text('Payment of LKR ${amt.toStringAsFixed(2)} verified successfully! Txn: ${verificationResult.transactionId}'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+
+                                  // Immediately show official digital receipt
+                                  if (context.mounted) {
+                                    StudentPaymentReceiptModal.show(
+                                      context,
+                                      payment: verificationResult.verifiedPayment!,
+                                      studentName: studentName,
+                                      studentId: studentId,
+                                    );
+                                  }
+                                } else {
+                                  setModalState(() => isProcessing = false);
+                                  messenger.showSnackBar(
+                                    SnackBar(content: Text(verificationResult.errorMessage ?? 'Payment verification failed.'), backgroundColor: Colors.redAccent),
+                                  );
+                                }
+                              } catch (e) {
+                                setModalState(() => isProcessing = false);
+                                final msg = e.toString().replaceAll('Exception: ', '');
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+                                );
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: isProcessing
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.lock_outline_rounded, color: Colors.white),
+                      label: Text(
+                        isProcessing ? 'Verifying Gateway Transaction...' : 'Pay & Verify Transaction (LKR ${enteredAmt.toStringAsFixed(0)})',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: cvvController,
-                      obscureText: true,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        labelText: 'CVV',
-                        labelStyle: const TextStyle(color: Colors.grey),
-                        filled: true,
-                        fillColor: const Color(0xFF0F172A),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ),
                 ],
               ),
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: isProcessing
-                      ? null
-                      : () async {
-                          final amt = double.tryParse(amountController.text.trim()) ?? 0.0;
-                          if (amt <= 0) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please enter a valid amount greater than zero.'), backgroundColor: Colors.redAccent),
-                            );
-                            return;
-                          }
-
-                          setModalState(() => isProcessing = true);
-                          final messenger = ScaffoldMessenger.of(context);
-                          final nav = Navigator.of(ctx);
-
-                          final email = widget.userData?['email'] ?? '';
-                          final studentId = widget.userData?['studentId'] ?? 'STU-1002';
-                          final studentName = widget.userData?['fullName'] ?? widget.userData?['name'] ?? 'Student';
-                          final ref = 'PAY-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}';
-
-                          try {
-                            final payment = PaymentModel(
-                              paymentId: ref,
-                              studentEmail: email,
-                              studentId: studentId,
-                              studentName: studentName,
-                              feeType: selectedFeeType,
-                              amount: amt,
-                              paymentMethod: selectedPaymentMethod,
-                              transactionRef: ref,
-                              paymentDate: DateTime.now().toIso8601String(),
-                              status: 'success',
-                            );
-
-                            await _portalService.processPayment(payment);
-
-                            nav.pop();
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text('Payment of LKR ${amt.toStringAsFixed(0)} successful! Receipt: $ref'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          } catch (e) {
-                            setModalState(() => isProcessing = false);
-                            messenger.showSnackBar(
-                              SnackBar(content: Text('Payment failed: $e'), backgroundColor: Colors.redAccent),
-                            );
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  icon: isProcessing
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.lock_outline_rounded, color: Colors.white),
-                  label: const Text('Pay Securely with Gateway', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

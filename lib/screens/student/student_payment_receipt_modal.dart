@@ -135,9 +135,10 @@ class StudentPaymentReceiptModal extends StatelessWidget {
                         const SizedBox(height: 16),
 
                         // Details Table
-                        _receiptRow('Receipt / Payment ID', payment.paymentId, isMonospace: true),
-                        _receiptRow('Transaction Ref', payment.transactionRef.isNotEmpty ? payment.transactionRef : payment.paymentId, isMonospace: true),
-                        _receiptRow('Payment Date', dateStr),
+                        _receiptRow('Official Receipt No', payment.receiptNumber.isNotEmpty ? payment.receiptNumber : 'REC-2026-${payment.paymentId}', isMonospace: true),
+                        _receiptRow('Payment Order ID', payment.paymentId, isMonospace: true),
+                        _receiptRow('Gateway Transaction ID', payment.transactionId.isNotEmpty ? payment.transactionId : payment.transactionRef, isMonospace: true),
+                        _receiptRow('Payment Date & Time', dateStr),
                         _receiptRow('Candidate Name', studentName.isNotEmpty ? studentName : payment.studentName),
                         _receiptRow('Student ID', studentId.isNotEmpty ? studentId : payment.studentId, isMonospace: true),
                         _receiptRow('Fee Category', payment.feeType),

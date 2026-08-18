@@ -1169,5 +1169,123 @@ void main() {
       expect(aliceSuccessful.length, 1);
       expect(aliceSuccessful.first.amount, 50000.0);
     });
+
+    test('Online Payment Amount Validation & Two-Phase Verification Rules', () {
+      const currentBalance = 150000.0;
+
+      // 1. Amount <= 0 is rejected
+      expect(PaymentModel.validatePaymentAmount(amount: 0.0, currentBalance: currentBalance) != null, true);
+      expect(PaymentModel.validatePaymentAmount(amount: -500.0, currentBalance: currentBalance) != null, true);
+      expect(PaymentModel.validatePaymentAmount(amount: null, currentBalance: currentBalance) != null, true);
+
+      // 2. Amount > currentBalance is rejected
+      final excessError = PaymentModel.validatePaymentAmount(amount: 160000.0, currentBalance: currentBalance);
+      expect(excessError != null, true);
+      expect(excessError!.contains('cannot exceed outstanding balance'), true);
+
+      // 3. Valid amount <= currentBalance is accepted
+      expect(PaymentModel.validatePaymentAmount(amount: 50000.0, currentBalance: currentBalance), null);
+      expect(PaymentModel.validatePaymentAmount(amount: 150000.0, currentBalance: currentBalance), null);
+
+      // 4. Two-Phase Payment Model Status Progression & Verification
+      final pendingPayment = PaymentModel(
+        paymentId: 'PAY-8801',
+        studentEmail: 'student@uni.lk',
+        studentId: 'STU-1001',
+        studentName: 'Alice',
+        feeType: 'Semester Fee',
+        amount: 75000.0,
+        currency: 'LKR',
+        paymentMethod: 'Online Card (Sandbox Gateway)',
+        transactionRef: 'ORD-8801',
+        paymentDate: '2026-08-18T10:00:00',
+        status: 'pending',
+      );
+
+      expect(pendingPayment.isPending, true);
+      expect(pendingPayment.isSuccessful, false);
+
+      final verifiedPayment = PaymentModel(
+        paymentId: pendingPayment.paymentId,
+        studentEmail: pendingPayment.studentEmail,
+        studentId: pendingPayment.studentId,
+        studentName: pendingPayment.studentName,
+        feeType: pendingPayment.feeType,
+        amount: pendingPayment.amount,
+        currency: pendingPayment.currency,
+        paymentMethod: pendingPayment.paymentMethod,
+        transactionRef: pendingPayment.transactionRef,
+        transactionId: 'TXN-SBX-99881',
+        paymentDate: pendingPayment.paymentDate,
+        status: 'success',
+        verifiedAt: '2026-08-18T10:01:15',
+      );
+
+      expect(verifiedPayment.isSuccessful, true);
+      expect(verifiedPayment.isPending, false);
+      expect(verifiedPayment.transactionId, 'TXN-SBX-99881');
+      expect(verifiedPayment.verifiedAt != null, true);
+    });
+
+    test('Payment Receipt Number Generation, Audit Trail & Multi-Status Notifications', () {
+      // 1. Unique Receipt Number Format (REC-YYYY-XXXXXX)
+      final receiptNo = PaymentModel.generateReceiptNumber();
+      expect(receiptNo.startsWith('REC-'), true);
+      expect(receiptNo.contains('2026') || receiptNo.contains('2025'), true);
+
+      // 2. Full Audit Trail Payment Object
+      final auditedPayment = PaymentModel(
+        paymentId: 'PAY-9901',
+        receiptNumber: 'REC-2026-000123',
+        studentEmail: 'student@uni.lk',
+        studentId: 'STU-1001',
+        studentName: 'Alice',
+        feeType: 'Registration Fee',
+        amount: 15000.0,
+        currency: 'LKR',
+        paymentMethod: 'Online Card (Sandbox Gateway)',
+        transactionRef: 'ORD-9901',
+        transactionId: 'TXN-SBX-12345',
+        paymentDate: '2026-08-18T10:00:00',
+        status: 'success',
+        createdAt: '2026-08-18T10:00:00',
+        verifiedAt: '2026-08-18T10:01:00',
+        refundedAt: null,
+      );
+
+      expect(auditedPayment.receiptNumber, 'REC-2026-000123');
+      expect(auditedPayment.createdAt, '2026-08-18T10:00:00');
+      expect(auditedPayment.verifiedAt, '2026-08-18T10:01:00');
+      expect(auditedPayment.isSuccessful, true);
+
+      // Serialization verification
+      final map = auditedPayment.toMap();
+      expect(map['receiptNumber'], 'REC-2026-000123');
+      expect(map['verifiedAt'], '2026-08-18T10:01:00');
+      expect(map['currency'], 'LKR');
+
+      // 3. Refunded Audit Trail
+      final refundedPayment = PaymentModel(
+        paymentId: auditedPayment.paymentId,
+        receiptNumber: auditedPayment.receiptNumber,
+        studentEmail: auditedPayment.studentEmail,
+        studentId: auditedPayment.studentId,
+        studentName: auditedPayment.studentName,
+        feeType: auditedPayment.feeType,
+        amount: auditedPayment.amount,
+        currency: auditedPayment.currency,
+        paymentMethod: auditedPayment.paymentMethod,
+        transactionRef: auditedPayment.transactionRef,
+        transactionId: auditedPayment.transactionId,
+        paymentDate: auditedPayment.paymentDate,
+        status: 'refunded',
+        createdAt: auditedPayment.createdAt,
+        verifiedAt: auditedPayment.verifiedAt,
+        refundedAt: '2026-08-18T14:30:00',
+      );
+
+      expect(refundedPayment.isRefunded, true);
+      expect(refundedPayment.refundedAt, '2026-08-18T14:30:00');
+    });
   });
 }
